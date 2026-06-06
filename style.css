@@ -13,9 +13,9 @@
   --snap: cubic-bezier(.25,.46,.45,.94);
 }
 
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
+html, body { height: 100%; background: #000; color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; display: flex; justify-content: center; }
 
-#app { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); }
+#app { position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--bg); overflow: hidden; }
 
 .screen { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: var(--nav); overflow: hidden; flex-direction: column; }
 .screen.active { display: flex; }
@@ -146,8 +146,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .thought-num { font-size: 10px; font-weight: 700; color: var(--accent); margin-bottom: 5px; }
 .thought-title { font-size: 14px; font-weight: 600; margin-bottom: 7px; line-height: 1.35; }
 .thought-example { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.thought-life { font-size: 13px; color: #b0b0b0; line-height: 1.55; margin-top: 10px; padding-top: 10px; border-top: 1px solid #2a2a2a; }
+.thought-question { font-size: 13px; color: var(--accent); line-height: 1.5; margin-top: 8px; font-style: italic; }
+.thought-tag { font-weight: 700; font-style: normal; }
 
-.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--nav); background: var(--bg2); border-top: 1px solid #1c1c1c; display: flex; align-items: center; justify-content: space-around; padding: 0 20px; }
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--nav); background: var(--bg2); border-top: 1px solid #1c1c1c; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
 
 .nav-btn {
   background: none;
@@ -237,3 +240,47 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 #scroll-top-btn:active {
   transform: scale(.88);
 }
+
+/* Subscription screen */
+.sub-header { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #1c1c1c; flex-shrink: 0; }
+.sub-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 14px 32px; display: flex; flex-direction: column; gap: 14px; }
+.sub-content::-webkit-scrollbar { display: none; }
+
+.sub-hero { text-align: center; padding: 6px 0 14px; }
+.sub-hero img { margin-bottom: 10px; opacity: .95; }
+.sub-hero-title { font-size: 20px; font-weight: 700; }
+
+.sub-block { background: var(--bg2); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sub-block--soon { opacity: .5; }
+.sub-block-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: .01em; }
+
+.sub-plans { display: flex; gap: 8px; }
+
+.sub-plan {
+  flex: 1;
+  background: var(--bg3);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform .16s var(--spring), border-color .2s, background .2s;
+  position: relative;
+  overflow: hidden;
+}
+.sub-plan:active { transform: scale(.95); }
+.sub-plan--active { border-color: var(--accent); background: #1f1800; }
+.sub-plan-badge { font-size: 9px; font-weight: 700; color: #000; background: var(--accent); border-radius: 20px; padding: 1px 7px; margin-bottom: 2px; }
+.sub-plan-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.sub-plan-price { font-size: 16px; font-weight: 700; color: var(--accent); }
+.sub-plan-usd { font-size: 11px; color: var(--muted); }
+
+.sub-pay-btn { width: 100%; padding: 14px; background: var(--accent); color: #000; font-size: 15px; font-weight: 700; border: none; border-radius: 14px; cursor: pointer; transition: transform .16s var(--spring), opacity .2s; }
+.sub-pay-btn:active { transform: scale(.96); }
+.sub-pay-btn:disabled { opacity: .5; }
+
+.sub-soon-text { text-align: center; font-size: 14px; color: var(--muted); padding: 8px 0; }

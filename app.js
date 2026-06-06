@@ -8,6 +8,8 @@ var currentListForNav = [];
 var SORT_OPTIONS = [
   { key: 'sales',       label: 'По продажам' },
   { key: 'recommended', label: 'Рекомендованные' },
+  { key: 'newer',       label: 'Новее → Старее' },
+  { key: 'older',       label: 'Старее → Новее' },
   { key: 'az',          label: 'По названию А → Я' },
   { key: 'za',          label: 'По названию Я → А' },
   { key: 'author',      label: 'По автору А → Я' },
@@ -42,6 +44,8 @@ function recommendScore(b, weights) {
 function sortBooks(books, sort) {
   var s = books.slice();
   if (sort === 'sales')    return s.sort(function(a,b){ return b.world_reads - a.world_reads; });
+  if (sort === 'newer')    return s.sort(function(a,b){ return (b.year||0) - (a.year||0); });
+  if (sort === 'older')    return s.sort(function(a,b){ return (a.year||0) - (b.year||0); });
   if (sort === 'az')       return s.sort(function(a,b){ return a.title.localeCompare(b.title, 'ru'); });
   if (sort === 'za')       return s.sort(function(a,b){ return b.title.localeCompare(a.title, 'ru'); });
   if (sort === 'thoughts') return s.sort(function(a,b){ return b.thoughts.length - a.thoughts.length; });
@@ -115,8 +119,7 @@ function applyGenre(key) {
 }
 
 function openSearch() {
-  document.getElementById('screen-detail').classList.remove('active');
-  document.getElementById('screen-list').classList.add('active');
+  setScreen('list');
   document.getElementById('genre-tabs').style.display = 'none';
   document.getElementById('search-bar').style.display = 'flex';
   var inp = document.getElementById('search-input');
@@ -137,9 +140,10 @@ function saveReadBooks() {
 
 async function init() {
   try {
-    var booksRes = await fetch(API + '/books.json');
+    var booksRes = await fetch(API + '/books.json?v=' + Date.now());
     allBooks = await booksRes.json();
     renderList(allBooks);
+    checkSubscription();
   } catch(e) {
     document.getElementById('books-list').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
   }
@@ -230,6 +234,8 @@ function openBook(id) {
       '<div class="thought-num">№' + (i + 1) + '</div>' +
       '<div class="thought-title">' + t.title + '</div>' +
       '<div class="thought-example">' + md(t.example) + '</div>' +
+      (t.life ? '<div class="thought-life"><span class="thought-tag">В жизни:</span> ' + md(t.life) + '</div>' : '') +
+      (t.question ? '<div class="thought-question"><span class="thought-tag">Вопрос себе:</span> ' + t.question + '</div>' : '') +
       '</div>';
   }).join('');
 
@@ -249,8 +255,8 @@ function openBook(id) {
     '<span>' + (isRead ? 'Прочитал!' : 'Прочитал?') + '</span>' +
     '</button>';
 
-  document.getElementById('screen-list').classList.remove('active');
-  document.getElementById('screen-detail').classList.add('active');
+  document.getElementById('detail-content').scrollTop = 0;
+  setScreen('detail');
 }
 
 function toggleRead(id) {
@@ -289,9 +295,92 @@ function prevBook() {
 }
 
 function goHome() {
-  document.getElementById('screen-detail').classList.remove('active');
-  document.getElementById('screen-list').classList.add('active');
+  document.getElementById('search-bar').style.display = 'none';
+  document.getElementById('genre-tabs').style.display = 'flex';
+  document.getElementById('search-input').value = '';
+  setScreen('list');
   renderList(filterByGenre(allBooks, activeGenre));
+}
+
+function setScreen(name) {
+  ['list','detail','sub'].forEach(function(s) {
+    document.getElementById('screen-' + s).classList.remove('active');
+  });
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  var navMap = { list: '.nav-home', sub: '.nav-sub' };
+  if (navMap[name]) document.querySelector(navMap[name]).classList.add('active');
+}
+
+var selectedPlan = 'year';
+
+function setSubIcon(premium) {
+  var img = document.querySelector('.nav-sub img');
+  if (img) img.src = premium ? 'premium_light.png' : 'sub.png';
+}
+
+async function checkSubscription() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  if (!uid) return;
+  try {
+    var resp = await fetch(API + '/subscription/' + uid);
+    var data = await resp.json();
+    if (data.subscribed) setSubIcon(true);
+  } catch(e) {}
+}
+
+function selectPlan(el, plan) {
+  selectedPlan = plan;
+  document.querySelectorAll('.sub-plan').forEach(function(b){ b.classList.remove('sub-plan--active'); });
+  el.classList.add('sub-plan--active');
+}
+
+async function paySelected() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  var btn = document.getElementById('sub-pay-btn');
+  btn.disabled = true;
+  btn.textContent = 'Загрузка...';
+  try {
+    var resp = await fetch(API + '/invoice/' + selectedPlan);
+    var data = await resp.json();
+    if (!data.link) throw new Error(data.error || 'no link');
+    if (tg && tg.openInvoice) {
+      tg.openInvoice(data.link, function(status) {
+        if (status === 'paid') {
+          setSubIcon(true);
+          alert('Спасибо! Подписка активирована.');
+        }
+      });
+    } else if (tg && tg.openLink) {
+      tg.openLink(data.link);
+    } else {
+      window.open(data.link, '_blank');
+    }
+  } catch(e) {
+    alert('Ошибка: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Оплатить Stars';
+  }
+}
+
+function openSub() { setScreen('sub'); }
+function closeSub() { setScreen('list'); renderList(filterByGenre(allBooks, activeGenre)); }
+
+async function buyPlan(plan) {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg || !tg.openInvoice) { alert('Откройте в Telegram'); return; }
+  try {
+    var resp = await fetch(API + '/invoice/' + plan);
+    var data = await resp.json();
+    if (!data.link) throw new Error(data.error || 'no link');
+    tg.openInvoice(data.link, function(status) {
+      if (status === 'paid') alert('Спасибо! Подписка активирована.');
+    });
+  } catch(e) {
+    alert('Ошибка: ' + e.message);
+  }
 }
 
 init();

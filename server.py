@@ -1,8 +1,36 @@
 import os
 import json
+import urllib.request
+import urllib.parse
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
+
+# load .env
+_env = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(_env):
+    for _line in open(_env):
+        _line = _line.strip()
+        if _line and '=' in _line and not _line.startswith('#'):
+            _k, _v = _line.split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
+PLAN_STARS = {'month': 333, 'year': 3333, 'forever': 6667}
+PLAN_NAMES = {'month': 'Подписка на месяц', 'year': 'Подписка на год', 'forever': 'Навсегда'}
+
+def create_invoice_link(plan):
+    token = os.getenv('BOT_TOKEN')
+    stars = PLAN_STARS[plan]
+    data = urllib.parse.urlencode({
+        'title': PLAN_NAMES[plan],
+        'description': 'Полный доступ к библиотеке книг',
+        'payload': f'sub_{plan}',
+        'currency': 'XTR',
+        'prices': json.dumps([{'label': PLAN_NAMES[plan], 'amount': stars}]),
+    }).encode()
+    req = urllib.request.Request(f'https://api.telegram.org/bot{token}/createInvoiceLink', data=data)
+    resp = urllib.request.urlopen(req, timeout=10)
+    return json.loads(resp.read())['result']
 
 READS_FILE = '/root/books/reads.json'
 SUBS_FILE = '/root/books/subscriptions.json'
@@ -61,6 +89,16 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {'subscribed': active, 'expires': subs[uid]})
             else:
                 self.send_json(200, {'subscribed': False})
+        elif path.startswith('/invoice/'):
+            plan = path[len('/invoice/'):]
+            if plan in PLAN_STARS:
+                try:
+                    link = create_invoice_link(plan)
+                    self.send_json(200, {'link': link})
+                except Exception as e:
+                    self.send_json(500, {'error': str(e)})
+            else:
+                self.send_json(400, {'error': 'invalid plan'})
         else:
             self.send_json(404, {'error': 'not found'})
 

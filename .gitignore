@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+recovered_script_*.py
+fill_*.py
+update_*.py
+restore.py
+extract*.py
+Cbooksbooks.json

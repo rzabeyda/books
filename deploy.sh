@@ -7,10 +7,14 @@ ssh -i $KEY $SERVER "mkdir -p /root/books/webapp/covers"
 scp -i $KEY C:/books/index.html  $SERVER:/root/books/webapp/
 scp -i $KEY C:/books/style.css   $SERVER:/root/books/webapp/
 scp -i $KEY C:/books/app.js      $SERVER:/root/books/webapp/
-scp -i $KEY C:/books/books.json  $SERVER:/root/books/webapp/
+# books.json не деплоим автоматически — данные живут на сервере
+# чтобы залить: scp -i ~/.ssh/id_rsa C:/books/books.json root@84.200.33.70:/root/books/webapp/
 
 echo "==> Деплой иконок..."
 scp -i $KEY C:/books/icons/book.png    $SERVER:/root/books/webapp/
+scp -i $KEY C:/books/icons/search.png  $SERVER:/root/books/webapp/
+scp -i $KEY C:/books/icons/sub.png          $SERVER:/root/books/webapp/
+scp -i $KEY C:/books/icons/premium_light.png $SERVER:/root/books/webapp/
 scp -i $KEY C:/books/icons/mybook.jpg  $SERVER:/root/books/webapp/
 scp -i $KEY C:/books/icons/ok.png      $SERVER:/root/books/webapp/
 scp -i $KEY C:/books/icons/sapiens.jpg $SERVER:/root/books/webapp/
