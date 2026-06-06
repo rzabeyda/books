@@ -1,0 +1,12 @@
+{
+  "disabledMcpjsonServers": ["Claude Preview", "Claude_Preview", "Claude in Chrome", "Claude_in_Chrome"],
+  "permissions": {
+    "allow": [
+      "Bash(scp -i *)",
+      "Bash(ssh -i *)",
+      "Bash(pip install *)",
+      "Bash(python *)",
+      "Bash(python3 *)"
+    ]
+  }
+}

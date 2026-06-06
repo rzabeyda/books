@@ -1,0 +1,13 @@
+[Unit]
+Description=Books Telegram Bot
+After=network.target
+
+[Service]
+WorkingDirectory=/root/books
+ExecStart=/usr/bin/python3 /root/books/bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/root/books/.env
+
+[Install]
+WantedBy=multi-user.target

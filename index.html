@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Книги</title>
+  <link rel="icon" type="image/png" href="book.png" />
+  <link rel="apple-touch-icon" href="book.png" />
+  <link rel="stylesheet" href="style.css?v=4" />
+</head>
+<body>
+  <div id="app">
+
+    <div id="screen-list" class="screen active">
+
+      <div class="top-bar" id="top-bar">
+        <div class="top-controls" id="genre-tabs">
+          <button class="ctrl-btn" id="sort-btn" onclick="openSheet('sort')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+            <span id="sort-label">По продажам</span>
+          </button>
+          <button class="ctrl-btn ctrl-genre" id="genre-btn" onclick="openSheet('genre')">
+            <span id="genre-label">Все книги</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="search-bar" id="search-bar" style="display:none">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Поиск книг..." autocomplete="off" />
+          <button class="search-close" onclick="closeSearch()">✕</button>
+        </div>
+      </div>
+
+      <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+      <div class="sheet" id="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sheet-title"></div>
+        <div class="sheet-list" id="sheet-list"></div>
+      </div>
+
+      <div id="books-list" class="books-list"></div>
+    </div>
+
+    <div id="screen-detail" class="screen">
+      <div class="detail-header">
+        <button class="back-btn" onclick="prevBook()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span id="detail-title-top" class="detail-title-top"></span>
+        <button class="next-btn" id="next-btn" onclick="nextBook()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+      <div id="detail-content" class="detail-content"></div>
+    </div>
+
+    <button id="scroll-top-btn" onclick="scrollToTop()" aria-label="Наверх">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+      </svg>
+    </button>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" onclick="goHome()">
+        <img src="book.png" width="24" height="24" alt="" />
+        <span>Книги</span>
+      </button>
+      <button class="nav-btn nav-search" onclick="openSearch()">
+        <img src="search.png" width="24" height="24" alt="" />
+        <span>Поиск</span>
+      </button>
+    </nav>
+
+  </div>
+  <script src="app.js?v=6"></script>
+</body>
+</html>

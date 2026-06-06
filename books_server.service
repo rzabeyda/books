@@ -1,0 +1,14 @@
+[Unit]
+Description=Books API Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/books
+ExecStart=/usr/bin/python3 /root/books/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
