@@ -19,11 +19,14 @@ var SORT_OPTIONS = [
 ];
 
 var GENRE_OPTIONS = [
-  { key: 'all',       label: 'Все книги' },
-  { key: 'nonfiction',label: 'Нон-фикшн' },
-  { key: 'religion',  label: 'Священные писания' },
-  { key: 'politics',  label: 'Политика' },
-  { key: 'fiction',   label: 'Классика' },
+  { key: 'all',            label: 'Все книги' },
+  { key: 'nonfiction',     label: 'Нон-фикшн' },
+  { key: 'художественная', label: 'Художественная' },
+  { key: 'классика',       label: 'Классика' },
+  { key: 'сказки',         label: 'Сказки и фэнтези' },
+  { key: 'religion',       label: 'Священные писания' },
+  { key: 'politics',       label: 'Политика' },
+  { key: 'мемуары',        label: 'Мемуары' },
 ];
 
 function buildRecommendWeights() {
@@ -175,9 +178,13 @@ function filterByGenre(books, genre) {
 }
 
 var GENRES = [
-  { key: 'nonfiction', label: 'Нон-фикшн' },
-  { key: 'religion',   label: 'Священные писания' },
-  { key: 'fiction',    label: 'Классика' },
+  { key: 'nonfiction',     label: 'Нон-фикшн' },
+  { key: 'художественная', label: 'Художественная' },
+  { key: 'классика',       label: 'Классика' },
+  { key: 'сказки',         label: 'Сказки и фэнтези' },
+  { key: 'religion',       label: 'Священные писания' },
+  { key: 'politics',       label: 'Политика' },
+  { key: 'мемуары',        label: 'Мемуары' },
 ];
 
 function topCardHtml(b) {
