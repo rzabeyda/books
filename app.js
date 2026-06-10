@@ -323,10 +323,10 @@ function submitSuggest() {
 
   var text = '📚 Запрос на книгу\n\nКнига: ' + title + (author ? '\nАвтор: ' + author : '') + '\nОт: ' + userName;
 
-  fetch('https://api.telegram.org/bot8252103393:AAE7U0zmm5r8tLvvm2SWXx5gAfOlHULdq7U/sendMessage', {
+  fetch(API + '/suggest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: 7308147004, text: text })
+    body: JSON.stringify({ text: text })
   }).then(function() {
     document.getElementById('suggest-modal').style.display = 'none';
     showSuggestToast();
