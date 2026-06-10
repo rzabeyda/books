@@ -189,6 +189,21 @@
     </div>
 
   </div>
-  <script src="app.js?v=17"></script>
+  <!-- Suggest book modal -->
+  <div id="suggest-modal" style="display:none" class="suggest-overlay" onclick="if(event.target===this)closeSuggestModal()">
+    <div class="suggest-modal">
+      <div class="suggest-modal-title">Предложить книгу</div>
+      <div class="suggest-modal-sub">Напиши название и автора — мы добавим её в библиотеку</div>
+      <input id="suggest-title" class="suggest-input" type="text" placeholder="Название книги" maxlength="100" />
+      <input id="suggest-author" class="suggest-input" type="text" placeholder="Автор (необязательно)" maxlength="100" />
+      <button class="suggest-submit-btn" onclick="submitSuggest()">Отправить</button>
+      <button class="suggest-cancel-btn" onclick="closeSuggestModal()">Отмена</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="suggest-toast" style="display:none" class="suggest-toast">✅ Заявка отправлена!</div>
+
+  <script src="app.js?v=18"></script>
 </body>
 </html>

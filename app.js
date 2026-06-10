@@ -41,6 +41,7 @@ var GENRE_OPTIONS = [
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
+  { key: 'империи',           label: 'Империи' },
 ];
 
 function buildRecommendWeights() {
@@ -237,6 +238,7 @@ var GENRES = [
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
+  { key: 'империи',           label: 'Империи' },
 ];
 
 function topCardHtml(b) {
@@ -296,7 +298,48 @@ function renderList(books) {
 
   document.getElementById('books-list').innerHTML =
     genreHtml +
-    '<div class="books-grid">' + (gridHtml || '<div class="empty-state">Ничего не найдено</div>') + '</div>';
+    '<div class="books-grid">' + (gridHtml || '<div class="empty-state">Ничего не найдено</div>') + '</div>' +
+    '<div class="suggest-book-btn" onclick="openSuggestModal()">📚 Предложить книгу</div>';
+}
+
+function openSuggestModal() {
+  document.getElementById('suggest-modal').style.display = 'flex';
+  document.getElementById('suggest-title').value = '';
+  document.getElementById('suggest-author').value = '';
+  document.getElementById('suggest-title').focus();
+}
+
+function closeSuggestModal() {
+  document.getElementById('suggest-modal').style.display = 'none';
+}
+
+function submitSuggest() {
+  var title = document.getElementById('suggest-title').value.trim();
+  var author = document.getElementById('suggest-author').value.trim();
+  if (!title) { document.getElementById('suggest-title').focus(); return; }
+
+  var user = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+  var userName = user ? (user.first_name + (user.last_name ? ' ' + user.last_name : '') + (user.username ? ' @' + user.username : '')) : 'Аноним';
+
+  var text = '📚 Запрос на книгу\n\nКнига: ' + title + (author ? '\nАвтор: ' + author : '') + '\nОт: ' + userName;
+
+  fetch('https://api.telegram.org/bot8252103393:AAE7U0zmm5r8tLvvm2SWXx5gAfOlHULdq7U/sendMessage', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: 7308147004, text: text })
+  }).then(function() {
+    document.getElementById('suggest-modal').style.display = 'none';
+    showSuggestToast();
+  }).catch(function() {
+    document.getElementById('suggest-modal').style.display = 'none';
+    showSuggestToast();
+  });
+}
+
+function showSuggestToast() {
+  var toast = document.getElementById('suggest-toast');
+  toast.style.display = 'block';
+  setTimeout(function() { toast.style.display = 'none'; }, 3000);
 }
 
 function openBook(id) {

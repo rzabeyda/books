@@ -689,3 +689,17 @@ a.sub-plan { text-decoration: none; }
 .ob-card-text strong { color: #fff; }
 .ob-btn { margin: 0 16px 24px; width: calc(100% - 32px); padding: 18px; border-radius: 18px; border: none; background: linear-gradient(90deg, #d4a017, #f5d050); color: #000; font-size: 16px; font-weight: 800; cursor: pointer; letter-spacing: .01em; transition: transform .16s var(--spring); flex-shrink: 0; }
 .ob-btn:active { transform: scale(.97); }
+
+/* Suggest book */
+.suggest-book-btn { margin: 24px 16px 32px; padding: 16px; background: #161616; border: 1px solid #2a2a2a; border-radius: 16px; color: #f0c040; font-size: 15px; font-weight: 700; text-align: center; cursor: pointer; transition: background .15s; }
+.suggest-book-btn:active { background: #1e1e1e; }
+.suggest-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.75); display: flex; align-items: flex-end; backdrop-filter: blur(4px); }
+.suggest-modal { width: 100%; background: #111; border-radius: 24px 24px 0 0; padding: 28px 20px 40px; display: flex; flex-direction: column; gap: 12px; }
+.suggest-modal-title { font-size: 20px; font-weight: 800; color: #fff; text-align: center; }
+.suggest-modal-sub { font-size: 13px; color: #888; text-align: center; margin-bottom: 4px; }
+.suggest-input { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 14px 16px; color: #fff; font-size: 15px; outline: none; width: 100%; }
+.suggest-input::placeholder { color: #555; }
+.suggest-input:focus { border-color: #f0c040; }
+.suggest-submit-btn { padding: 16px; border-radius: 14px; border: none; background: linear-gradient(90deg,#d4a017,#f5d050); color: #000; font-size: 15px; font-weight: 800; cursor: pointer; }
+.suggest-cancel-btn { padding: 12px; border-radius: 14px; border: none; background: transparent; color: #888; font-size: 14px; cursor: pointer; }
+.suggest-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1e1e1e; border: 1px solid #333; color: #fff; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 32px; z-index: 3000; white-space: nowrap; }
