@@ -4,11 +4,12 @@ var readBooks = new Set(JSON.parse(localStorage.getItem('readBooks') || '[]'));
 var activeGenre = 'all';
 var activeSort = 'sales';
 var currentListForNav = [];
+var allReactions = {};
 
 var SORT_OPTIONS = [
-  { key: 'sales',       label: 'По продажам' },
+  { key: 'sales',       label: 'Тираж' },
+  { key: 'newer',       label: 'Новое' },
   { key: 'recommended', label: 'Рекомендованные' },
-  { key: 'newer',       label: 'Новее → Старее' },
   { key: 'older',       label: 'Старее → Новее' },
   { key: 'az',          label: 'По названию А → Я' },
   { key: 'za',          label: 'По названию Я → А' },
@@ -19,14 +20,26 @@ var SORT_OPTIONS = [
 ];
 
 var GENRE_OPTIONS = [
-  { key: 'all',            label: 'Все книги' },
-  { key: 'nonfiction',     label: 'Нон-фикшн' },
-  { key: 'художественная', label: 'Художественная' },
-  { key: 'классика',       label: 'Классика' },
-  { key: 'сказки',         label: 'Сказки и фэнтези' },
-  { key: 'religion',       label: 'Священные писания' },
-  { key: 'politics',       label: 'Политика' },
-  { key: 'мемуары',        label: 'Мемуары' },
+  { key: 'all',               label: 'Все книги' },
+  { key: 'история успеха',    label: 'История успеха' },
+  { key: 'биографии',         label: 'Биографии' },
+  { key: 'саморазвитие',      label: 'Саморазвитие' },
+  { key: 'психология',        label: 'Психология' },
+  { key: 'блогеры',           label: 'Блогеры' },
+  { key: 'стримеры',          label: 'Стримеры' },
+  { key: 'цитаты',            label: 'Цитаты' },
+  { key: 'классика',          label: 'Классика' },
+  { key: 'художественная',    label: 'Художественная' },
+  { key: 'философия',         label: 'Философия' },
+  { key: 'бизнес',            label: 'Бизнес' },
+  { key: 'отношения',         label: 'Отношения' },
+  { key: 'мемуары',           label: 'Мемуары' },
+  { key: 'история',           label: 'История' },
+  { key: 'политика',          label: 'Политика' },
+  { key: 'сказки',            label: 'Сказки и фэнтези' },
+  { key: 'фэнтези',           label: 'Фэнтези' },
+  { key: 'наука',             label: 'Наука' },
+  { key: 'священные писания', label: 'Священные писания' },
 ];
 
 function buildRecommendWeights() {
@@ -47,7 +60,7 @@ function recommendScore(b, weights) {
 function sortBooks(books, sort) {
   var s = books.slice();
   if (sort === 'sales')    return s.sort(function(a,b){ return b.world_reads - a.world_reads; });
-  if (sort === 'newer')    return s.sort(function(a,b){ return (b.year||0) - (a.year||0); });
+  if (sort === 'newer')    return s.sort(function(a,b){ return b.id - a.id; });
   if (sort === 'older')    return s.sort(function(a,b){ return (a.year||0) - (b.year||0); });
   if (sort === 'az')       return s.sort(function(a,b){ return a.title.localeCompare(b.title, 'ru'); });
   if (sort === 'za')       return s.sort(function(a,b){ return b.title.localeCompare(a.title, 'ru'); });
@@ -81,11 +94,17 @@ function openSheet(type) {
     }).join('');
   } else {
     title.textContent = 'Раздел';
-    list.innerHTML = GENRE_OPTIONS.map(function(o) {
-      var active = o.key === activeGenre;
+    var genreWithCounts = GENRE_OPTIONS.map(function(o) {
       var count = o.key === 'all' ? allBooks.length : allBooks.filter(function(b){ return b.genre === o.key; }).length;
-      return '<button class="sheet-item' + (active ? ' active' : '') + '" onclick="applyGenre(\'' + o.key + '\')">' +
-        o.label + '<span class="sheet-count">' + count + '</span>' + (active ? '<span class="sheet-check">✓</span>' : '') + '</button>';
+      return { o: o, count: count };
+    });
+    var allOpt = genreWithCounts.filter(function(x){ return x.o.key === 'all'; });
+    var rest = genreWithCounts.filter(function(x){ return x.o.key !== 'all'; })
+      .sort(function(a, b){ return b.count - a.count; });
+    list.innerHTML = allOpt.concat(rest).map(function(x) {
+      var active = x.o.key === activeGenre;
+      return '<button class="sheet-item' + (active ? ' active' : '') + '" onclick="applyGenre(\'' + x.o.key + '\')">' +
+        x.o.label + '<span class="sheet-count">' + x.count + '</span>' + (active ? '<span class="sheet-check">✓</span>' : '') + '</button>';
     }).join('');
   }
 
@@ -111,6 +130,12 @@ function applySort(key) {
   updateSortLabel();
   closeSheet();
   renderList(filterByGenre(allBooks, activeGenre));
+}
+
+function resetFilters() {
+  activeSort = 'sales';
+  updateSortLabel();
+  applyGenre('all');
 }
 
 function applyGenre(key) {
@@ -142,6 +167,8 @@ function saveReadBooks() {
 }
 
 async function init() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.ready) tg.ready();
   try {
     var booksRes = await fetch(API + '/books.json?v=' + Date.now());
     allBooks = await booksRes.json();
@@ -150,6 +177,10 @@ async function init() {
   } catch(e) {
     document.getElementById('books-list').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
   }
+  try {
+    var rRes = await fetch(API + '/reactions');
+    allReactions = await rRes.json();
+  } catch(e) {}
 
   document.getElementById('search-input').addEventListener('input', function(e) {
     var q = e.target.value.trim().toLowerCase();
@@ -172,19 +203,37 @@ function coverImg(src, alt) {
   return '<img src="' + src + '" alt="' + alt + '" loading="lazy" onerror="this.style.display=\'none\'">';
 }
 
+function formatYear(y) {
+  if (!y && y !== 0) return '';
+  if (y < 0) return Math.abs(y) + 'г до н.э.';
+  return y + 'г';
+}
+
 function filterByGenre(books, genre) {
   if (genre === 'all') return books;
   return books.filter(function(b) { return b.genre === genre; });
 }
 
 var GENRES = [
-  { key: 'nonfiction',     label: 'Нон-фикшн' },
-  { key: 'художественная', label: 'Художественная' },
-  { key: 'классика',       label: 'Классика' },
-  { key: 'сказки',         label: 'Сказки и фэнтези' },
-  { key: 'religion',       label: 'Священные писания' },
-  { key: 'politics',       label: 'Политика' },
-  { key: 'мемуары',        label: 'Мемуары' },
+  { key: 'биографии',         label: 'Биографии' },
+  { key: 'психология',        label: 'Психология' },
+  { key: 'история успеха',    label: 'История успеха' },
+  { key: 'саморазвитие',      label: 'Саморазвитие' },
+  { key: 'блогеры',           label: 'Блогеры' },
+  { key: 'стримеры',          label: 'Стримеры' },
+  { key: 'цитаты',            label: 'Цитаты' },
+  { key: 'классика',          label: 'Классика' },
+  { key: 'художественная',    label: 'Художественная' },
+  { key: 'философия',         label: 'Философия' },
+  { key: 'бизнес',            label: 'Бизнес' },
+  { key: 'отношения',         label: 'Отношения' },
+  { key: 'мемуары',           label: 'Мемуары' },
+  { key: 'история',           label: 'История' },
+  { key: 'политика',          label: 'Политика' },
+  { key: 'сказки',            label: 'Сказки и фэнтези' },
+  { key: 'фэнтези',           label: 'Фэнтези' },
+  { key: 'наука',             label: 'Наука' },
+  { key: 'священные писания', label: 'Священные писания' },
 ];
 
 function topCardHtml(b) {
@@ -204,13 +253,16 @@ function renderList(books) {
   var genreHtml = '';
   var searching = books.length !== allBooks.length;
 
-  if (!searching) {
-    GENRES.forEach(function(g) {
-      var inGenre = sorted.filter(function(b) { return b.genre === g.key; });
-      if (!inGenre.length) return;
+  if (!searching && activeSort !== 'newer') {
+    var genresSorted = GENRES.map(function(g) {
+      return { g: g, books: sorted.filter(function(b) { return b.genre === g.key; }) };
+    }).filter(function(x) { return x.books.length > 0; })
+      .sort(function(a, b) { return b.books.length - a.books.length; });
+
+    genresSorted.forEach(function(x) {
       genreHtml +=
-        '<div class="section-label">' + g.label + '</div>' +
-        '<div class="top-scroll">' + inGenre.slice(0, 8).map(topCardHtml).join('') + '</div>';
+        '<div class="section-label">' + x.g.label + '</div>' +
+        '<div class="top-scroll">' + x.books.map(topCardHtml).join('') + '</div>';
     });
   }
 
@@ -225,7 +277,11 @@ function renderList(books) {
       '</div></div>';
   }).join('');
 
+  var resetEl = document.getElementById('genre-reset-btn');
+  if (resetEl) resetEl.style.display = (activeGenre !== 'all' || activeSort !== 'sales') ? 'flex' : 'none';
+
   document.getElementById('books-list').innerHTML =
+    genreHtml +
     '<div class="books-grid">' + (gridHtml || '<div class="empty-state">Ничего не найдено</div>') + '</div>';
 }
 
@@ -233,7 +289,8 @@ function openBook(id) {
   var b = allBooks.filter(function(x) { return x.id === id; })[0];
   if (!b) return;
 
-  document.getElementById('detail-title-top').textContent = b.title;
+  var titleEl = document.getElementById('detail-title-top');
+  if (titleEl) titleEl.textContent = b.title;
   document.getElementById('next-btn').dataset.currentId = b.id;
 
   var thoughtsHtml = b.thoughts.map(function(t, i) {
@@ -247,20 +304,30 @@ function openBook(id) {
   }).join('');
 
   var isRead = readBooks.has(b.id);
+  var r = allReactions[String(b.id)] || { up: 0, down: 0 };
+  var userVote = localStorage.getItem('vote_' + b.id);
   document.getElementById('detail-content').innerHTML =
     '<div class="detail-hero">' +
     '<div class="detail-cover">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="detail-meta">' +
-    '<div class="detail-book-title">' + b.title + '</div>' +
+    '<div class="detail-book-title">' + b.title + (b.year ? ' <span class="detail-year-inline">' + formatYear(b.year) + '</span>' : '') + '</div>' +
     '<div class="detail-book-author">' + b.author + '</div>' +
-    '<div class="detail-badge">' + b.thoughts.length + ' главных мыслей</div>' +
+    (b.description ? '<div class="detail-book-desc">' + b.description + '</div>' : '') +
     '</div></div>' +
-    '<div class="thoughts-title">Ключевые идеи</div>' +
+    '<div class="thoughts-title">10 ГЛАВНЫХ МЫСЛЕЙ</div>' +
     '<div class="thoughts-list">' + thoughtsHtml + '</div>' +
+    '<div class="detail-actions">' +
+    '<button class="react-btn react-btn-up' + (userVote === 'up' ? ' react-btn--active' : '') + '" id="react-up-btn" onclick="doReact(' + b.id + ',\'up\')">' +
+    '👍' + (r.up > 0 ? ' <span id="react-up-count">' + r.up + '</span>' : ' <span id="react-up-count" style="display:none">' + r.up + '</span>') +
+    '</button>' +
     '<button class="read-btn' + (isRead ? ' read-btn--done' : '') + '" onclick="toggleRead(' + b.id + ')">' +
     (isRead ? '<img src="ok.png" alt="" width="20" height="20" />' : '') +
     '<span>' + (isRead ? 'Прочитал!' : 'Прочитал?') + '</span>' +
-    '</button>';
+    '</button>' +
+    '<button class="react-btn react-btn-down' + (userVote === 'down' ? ' react-btn--active' : '') + '" id="react-down-btn" onclick="doReact(' + b.id + ',\'down\')">' +
+    (r.down > 0 ? '<span id="react-down-count">' + r.down + '</span> ' : '<span id="react-down-count" style="display:none">' + r.down + '</span> ') +
+    '👎</button>' +
+    '</div>';
 
   document.getElementById('detail-content').scrollTop = 0;
   setScreen('detail');
@@ -281,6 +348,25 @@ function toggleRead(id) {
     btn.innerHTML = (isRead ? '<img src="ok.png" alt="" width="20" height="20" />' : '') +
       '<span>' + (isRead ? 'Прочитал!' : 'Прочитал?') + '</span>';
   }
+}
+
+async function doReact(bookId, type) {
+  var prev = localStorage.getItem('vote_' + bookId);
+  if (prev) return;
+  try {
+    var resp = await fetch(API + '/react/' + bookId + '/' + type, { method: 'POST' });
+    var data = await resp.json();
+    allReactions[String(bookId)] = data;
+    localStorage.setItem('vote_' + bookId, type);
+    var upEl = document.getElementById('react-up-count');
+    var downEl = document.getElementById('react-down-count');
+    if (upEl) { upEl.textContent = data.up; upEl.style.display = data.up > 0 ? '' : 'none'; }
+    if (downEl) { downEl.textContent = data.down; downEl.style.display = data.down > 0 ? '' : 'none'; }
+    var upBtn = document.getElementById('react-up-btn');
+    var downBtn = document.getElementById('react-down-btn');
+    if (upBtn) upBtn.classList.toggle('react-btn--active', type === 'up');
+    if (downBtn) downBtn.classList.toggle('react-btn--active', type === 'down');
+  } catch(e) {}
 }
 
 function nextBook() {
@@ -322,19 +408,81 @@ function setScreen(name) {
 var selectedPlan = 'year';
 
 function setSubIcon(premium) {
-  var img = document.querySelector('.nav-sub img');
-  if (img) img.src = premium ? 'premium_light.png' : 'sub.png';
+  var btn = document.querySelector('.nav-sub');
+  if (!btn) return;
+  var existing = btn.querySelector('.nav-crown');
+  if (premium) {
+    var img = btn.querySelector('img');
+    if (img) img.style.display = 'none';
+    if (!existing) {
+      var crown = document.createElement('span');
+      crown.className = 'nav-crown';
+      crown.textContent = '👑';
+      btn.insertBefore(crown, btn.firstChild);
+    }
+  } else {
+    var img2 = btn.querySelector('img');
+    if (img2) img2.style.display = '';
+    if (existing) existing.remove();
+  }
+}
+
+function getTgUid() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) return null;
+  var uid = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  if (uid) return uid;
+  try {
+    var params = new URLSearchParams(tg.initData);
+    var user = JSON.parse(params.get('user') || '{}');
+    return user.id || null;
+  } catch(e) {}
+  return null;
+}
+
+function applySubscribedUI(expiresStr) {
+  setSubIcon(true);
+  var badge = document.getElementById('sub-vip-badge');
+  if (badge) badge.classList.remove('sub-vip-hidden');
+  if (expiresStr) {
+    var d = new Date(expiresStr);
+    var infoEl = document.getElementById('sub-info-text');
+    if (infoEl) {
+      infoEl.textContent = d.getFullYear() > 2100 ? 'Навсегда' : 'Активна до ' + d.toLocaleDateString('ru-RU');
+    }
+  }
 }
 
 async function checkSubscription() {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  // Apply cached status immediately
+  var cached = localStorage.getItem('sub_expires');
+  if (cached) applySubscribedUI(cached);
+
+  var uid = getTgUid();
   if (!uid) return;
   try {
     var resp = await fetch(API + '/subscription/' + uid);
     var data = await resp.json();
-    if (data.subscribed) setSubIcon(true);
+    if (data.subscribed) {
+      localStorage.setItem('sub_expires', data.expires || '');
+      applySubscribedUI(data.expires);
+    } else {
+      localStorage.removeItem('sub_expires');
+      setSubIcon(false);
+      var badge = document.getElementById('sub-vip-badge');
+      if (badge) badge.classList.add('sub-vip-hidden');
+    }
   } catch(e) {}
+}
+
+function showSubInfo() {
+  var el = document.getElementById('sub-info-overlay');
+  if (el) el.classList.add('show');
+}
+
+function closeSubInfo() {
+  var el = document.getElementById('sub-info-overlay');
+  if (el) el.classList.remove('show');
 }
 
 function selectPlan(el, plan) {
@@ -372,7 +520,25 @@ async function paySelected() {
   }
 }
 
-function openSub() { setScreen('sub'); }
+function openSub() { setScreen('sub'); checkSubscription(); }
+
+function buyStars() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) {
+    tg.openTelegramLink('https://t.me/stars');
+  } else {
+    window.open('https://t.me/stars', '_blank');
+  }
+}
+
+function writeAdmin() {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.openTelegramLink) {
+    tg.openTelegramLink('https://t.me/rzabeyda');
+  } else {
+    window.open('https://t.me/rzabeyda', '_blank');
+  }
+}
 function closeSub() { setScreen('list'); renderList(filterByGenre(allBooks, activeGenre)); }
 
 async function buyPlan(plan) {
