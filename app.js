@@ -263,18 +263,12 @@ function renderList(books) {
       return { g: g, books: sorted.filter(function(b) { return b.genre === g.key; }) };
     }).filter(function(x) { return x.books.length > 0; })
       .sort(function(a, b) {
-        var order = ['психология', 'отношения', 'саморазвитие', 'биографии'];
-        var ai = order.indexOf(a.g.key);
-        var bi = order.indexOf(b.g.key);
-        if (ai !== -1 && bi !== -1) return ai - bi;
-        if (ai !== -1) return -1;
-        if (bi !== -1) return 1;
         return b.books.length - a.books.length;
       });
 
     genresSorted.forEach(function(x) {
       var sectionBooks = x.g.key === 'история успеха'
-        ? x.books.slice().sort(function(a,b){ return b.world_reads - a.world_reads; })
+        ? x.books.slice().sort(function(a,b){ return a.id - b.id; })
         : x.books;
       genreHtml +=
         '<div class="section-label">' + x.g.label + '</div>' +
@@ -300,6 +294,28 @@ function renderList(books) {
     genreHtml +
     '<div class="books-grid">' + (gridHtml || '<div class="empty-state">Ничего не найдено</div>') + '</div>' +
     '<div class="suggest-book-btn" onclick="openSuggestModal()">📚 Предложить книгу</div>';
+
+  if (!searching && activeSort !== 'newer') {
+    setTimeout(function() {
+      var el = document.querySelector('.top-scroll');
+      if (!el) return;
+      var speed = 0.5;
+      var active = true;
+      function tick() {
+        if (!active) return;
+        el.scrollLeft += speed;
+        if (el.scrollLeft >= el.scrollWidth - el.offsetWidth) {
+          el.scrollLeft = 0;
+        }
+        requestAnimationFrame(tick);
+      }
+      el.addEventListener('touchstart', function() { active = false; });
+      el.addEventListener('touchend',   function() { active = true; requestAnimationFrame(tick); });
+      el.addEventListener('mousedown',  function() { active = false; });
+      el.addEventListener('mouseup',    function() { active = true; requestAnimationFrame(tick); });
+      requestAnimationFrame(tick);
+    }, 500);
+  }
 }
 
 function openSuggestModal() {
