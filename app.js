@@ -269,9 +269,12 @@ function renderList(books) {
       });
 
     genresSorted.forEach(function(x) {
+      var sectionBooks = x.g.key === 'история успеха'
+        ? x.books.slice().sort(function(a,b){ return b.world_reads - a.world_reads; })
+        : x.books;
       genreHtml +=
         '<div class="section-label">' + x.g.label + '</div>' +
-        '<div class="top-scroll">' + x.books.map(topCardHtml).join('') + '</div>';
+        '<div class="top-scroll">' + sectionBooks.map(topCardHtml).join('') + '</div>';
     });
   }
 
@@ -369,8 +372,8 @@ async function doReact(bookId, type) {
     localStorage.setItem('vote_' + bookId, type);
     var upEl = document.getElementById('react-up-count');
     var downEl = document.getElementById('react-down-count');
-    if (upEl) { upEl.textContent = data.up; upEl.style.display = data.up > 0 ? '' : 'none'; }
-    if (downEl) { downEl.textContent = data.down; downEl.style.display = data.down > 0 ? '' : 'none'; }
+    if (upEl) { upEl.textContent = data.up; upEl.style.display = data.up > 0 ? 'inline' : 'none'; }
+    if (downEl) { downEl.textContent = data.down; downEl.style.display = data.down > 0 ? 'inline' : 'none'; }
     var upBtn = document.getElementById('react-up-btn');
     var downBtn = document.getElementById('react-down-btn');
     if (upBtn) upBtn.classList.toggle('react-btn--active', type === 'up');

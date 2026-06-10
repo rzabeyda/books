@@ -545,9 +545,9 @@ a.sub-plan { text-decoration: none; }
 .react-count { font-size: 14px; font-weight: 700; }
 .react-row .mark-read-btn { flex: 1; margin: 0; }
 
-.detail-actions { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
-.detail-actions .read-btn { flex: 1; }
-.react-btn { display: flex; align-items: center; gap: 5px; border: 1px solid #333; border-radius: 20px; padding: 10px 14px; font-size: 15px; background: #1a1a1a; color: var(--text); cursor: pointer; transition: background .15s, transform .16s var(--spring); white-space: nowrap; flex-shrink: 0; }
+.detail-actions { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; }
+.detail-actions .read-btn { flex: 1; padding: 10px 12px; font-size: 13px; border-radius: 50px; }
+.react-btn { display: flex; align-items: center; gap: 5px; border: 1px solid #333; border-radius: 50px; padding: 10px 16px; font-size: 16px; background: #1a1a1a; color: var(--text); cursor: pointer; transition: background .15s, transform .16s var(--spring); white-space: nowrap; flex-shrink: 0; }
 .react-btn:active { transform: scale(.92); }
 .react-btn span { font-size: 13px; font-weight: 700; }
 .react-btn-up { border-color: rgba(76,175,80,.35); }
