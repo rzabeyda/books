@@ -6,10 +6,38 @@
   <title>Книги</title>
   <link rel="icon" type="image/png" href="book.png" />
   <link rel="apple-touch-icon" href="book.png" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <div id="app">
+
+    <div id="onboarding" class="onboarding" style="display:none">
+      <div class="ob-content">
+        <div class="ob-icon">📚</div>
+        <div class="ob-title">Читай умнее</div>
+        <div class="ob-subtitle">Библиотека из 500 книг — только суть</div>
+        <div class="ob-cards">
+          <div class="ob-card">
+            <div class="ob-card-icon">⚡</div>
+            <div class="ob-card-text"><strong>Книга за 10 минут</strong><br>Только главное — без воды и повторений</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">🧠</div>
+            <div class="ob-card-text"><strong>10 ключевых идей</strong><br>Каждая книга построена вокруг одной мысли и 10 подмыслей</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">📈</div>
+            <div class="ob-card-text"><strong>25–100 книг в месяц</strong><br>Вместо 1–2 при полном чтении</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">🎁</div>
+            <div class="ob-card-text"><strong>10 книг бесплатно</strong><br>Попробуй без оплаты прямо сейчас</div>
+          </div>
+        </div>
+      </div>
+      <button class="ob-btn" onclick="closeOnboarding()">Начать читать →</button>
+    </div>
 
     <div id="screen-list" class="screen active">
 
@@ -69,53 +97,43 @@
 
     <div id="screen-sub" class="screen sub-screen-flex">
       <div class="sub-header">
-        <span class="detail-title-top">Подписка</span>
-        <div id="sub-vip-badge" class="sub-vip-badge sub-vip-hidden" onclick="showSubInfo()">👑 Подписка оформлена</div>
-      </div>
-      <div id="sub-warn-banner" class="sub-warn-banner" style="display:none"></div>
-      <div class="sub-content">
-
-        <div class="sub-hero2">
-          <div class="sub-hero2-icon">👑</div>
-          <div class="sub-hero2-title">Полный доступ</div>
-          <div class="sub-hero2-sub">Все книги и идеи без ограничений</div>
-        </div>
-
-        <div class="sub-features">
-          <div class="sub-feature"><span class="sub-feat-icon">📚</span>Более 200 книг в одном приложении</div>
-          <div class="sub-feature"><span class="sub-feat-icon">🧠</span>Главные идеи каждой книги за 5 минут</div>
-          <div class="sub-feature"><span class="sub-feat-icon">💳</span>Картой или криптовалютой</div>
-        </div>
-
-        <div class="sub-plans2">
-          <div class="sub-plan2-wrap">
-            <a class="sub-plan2" href="https://web.tribute.tg/p/xkg" target="_blank">
-              <div class="sub-plan2-price">$5</div>
-              <div class="sub-plan2-per">в месяц</div>
-            </a>
-            <div class="sub-plan2-label">Старт</div>
-          </div>
-          <div class="sub-plan2-wrap">
-            <a class="sub-plan2 sub-plan2--best" href="https://web.tribute.tg/p/xry" target="_blank">
-              <div class="sub-plan2-badge">Выгодно</div>
-              <div class="sub-plan2-price">$50</div>
-              <div class="sub-plan2-per">$4.17 / мес</div>
-            </a>
-            <div class="sub-plan2-label sub-plan2-label--gold">Про · Год</div>
-          </div>
-          <div class="sub-plan2-wrap">
-            <a class="sub-plan2 sub-plan2--forever" href="https://web.tribute.tg/p/xrz" target="_blank">
-              <div class="sub-plan2-price">$100</div>
-              <div class="sub-plan2-per">один раз</div>
-            </a>
-            <div class="sub-plan2-label">Легенда</div>
-          </div>
-        </div>
-
+        <span class="detail-title-top">Клуб</span>
+        <div id="sub-vip-badge" class="sub-vip-badge sub-vip-hidden" onclick="showSubInfo()"><img src="vip.png" alt="" style="width:16px;height:16px;object-fit:contain;margin-right:5px"> Подписка оформлена</div>
       </div>
 
-      <div class="sub-action-btns">
-        <button class="sub-action-btn sub-action-btn--admin" onclick="writeAdmin()">✍️ Написать админу</button>
+      <div class="club-content">
+        <div class="club-hero">
+          <img class="club-hero-icon" src="crown.png" alt="" />
+          <div class="club-hero-title">Читай без границ</div>
+          <div class="club-hero-sub">Открой полный доступ</div>
+        </div>
+
+        <div class="club-tiers">
+          <a class="club-tier club-tier--start" href="https://web.tribute.tg/p/xkg" target="_blank">
+            <img class="club-tier-icon" src="silver_bricks.png" alt="" />
+            <div class="club-tier-price">$5</div>
+            <div class="club-tier-per">в месяц</div>
+            <div class="club-tier-name">Старт</div>
+          </a>
+          <a class="club-tier club-tier--pro" href="https://web.tribute.tg/p/xry" target="_blank">
+            <div class="club-tier-hot">Выгодно</div>
+            <img class="club-tier-icon" src="gold_bricks.png" alt="" />
+            <div class="club-tier-price">$50</div>
+            <div class="club-tier-per">в год</div>
+            <div class="club-tier-name">Про</div>
+          </a>
+          <a class="club-tier club-tier--legend" href="https://web.tribute.tg/p/xrz" target="_blank">
+            <img class="club-tier-icon" src="diamond.png" alt="" />
+            <div class="club-tier-price">$100</div>
+            <div class="club-tier-per">навсегда</div>
+            <div class="club-tier-name">Легенда</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="club-bottom">
+        <button class="club-why-btn" onclick="openWhyModal()">Что даёт подписка?</button>
+        <button class="club-admin-btn" onclick="writeAdmin()">Написать администратору</button>
       </div>
     </div>
 
@@ -138,12 +156,39 @@
         <span>Поиск</span>
       </button>
       <button class="nav-btn nav-sub" onclick="openSub()">
-        <img src="sub.png" width="24" height="24" alt="" />
-        <span>Подписка</span>
+        <img src="premium_light.png" width="36" height="36" alt="" id="sub-nav-icon" />
+        <span>Клуб</span>
       </button>
     </nav>
 
+    <div id="why-modal" class="why-modal" style="display:none" onclick="closeWhyModal()">
+      <div class="why-modal-box" onclick="event.stopPropagation()">
+        <div class="why-modal-close" onclick="closeWhyModal()">✕</div>
+        <div class="ob-icon" style="font-size:44px;margin-bottom:12px">📚</div>
+        <div class="why-modal-title">Что даёт подписка</div>
+        <div class="ob-cards">
+          <div class="ob-card">
+            <div class="ob-card-icon">🔓</div>
+            <div class="ob-card-text"><strong>Полный доступ к 500 материалам</strong><br>Книги, истории успеха, биографии, цитаты и многое другое — без подписки доступно только 10</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">⚡</div>
+            <div class="ob-card-text"><strong>Книга за 10 минут</strong><br>Только главное — без воды и повторений</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">📈</div>
+            <div class="ob-card-text"><strong>25–100 книг в месяц</strong><br>Вместо 1–2 при полном чтении</div>
+          </div>
+          <div class="ob-card">
+            <div class="ob-card-icon">🧠</div>
+            <div class="ob-card-text"><strong>10 ключевых идей каждой книги</strong><br>Убрали всё лишнее — только то, что меняет мышление</div>
+          </div>
+        </div>
+        <button class="ob-btn" style="margin:16px 0 0;width:100%" onclick="closeWhyModal()">Понятно</button>
+      </div>
+    </div>
+
   </div>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

@@ -174,6 +174,7 @@ async function init() {
     allBooks = await booksRes.json();
     renderList(allBooks);
     checkSubscription();
+    setTimeout(checkSubscription, 1500);
   } catch(e) {
     document.getElementById('books-list').innerHTML = '<div class="empty-state">Ошибка загрузки</div>';
   }
@@ -257,7 +258,15 @@ function renderList(books) {
     var genresSorted = GENRES.map(function(g) {
       return { g: g, books: sorted.filter(function(b) { return b.genre === g.key; }) };
     }).filter(function(x) { return x.books.length > 0; })
-      .sort(function(a, b) { return b.books.length - a.books.length; });
+      .sort(function(a, b) {
+        var order = ['психология', 'отношения', 'саморазвитие', 'биографии'];
+        var ai = order.indexOf(a.g.key);
+        var bi = order.indexOf(b.g.key);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return b.books.length - a.books.length;
+      });
 
     genresSorted.forEach(function(x) {
       genreHtml +=
@@ -403,39 +412,26 @@ function setScreen(name) {
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   var navMap = { list: '.nav-home', sub: '.nav-sub' };
   if (navMap[name]) document.querySelector(navMap[name]).classList.add('active');
+  if (name !== 'list' && name !== 'detail') {
+    document.getElementById('scroll-top-btn').classList.remove('visible');
+  }
 }
 
 var selectedPlan = 'year';
 
-function setSubIcon(premium) {
-  var btn = document.querySelector('.nav-sub');
-  if (!btn) return;
-  var existing = btn.querySelector('.nav-crown');
-  if (premium) {
-    var img = btn.querySelector('img');
-    if (img) img.style.display = 'none';
-    if (!existing) {
-      var crown = document.createElement('span');
-      crown.className = 'nav-crown';
-      crown.textContent = '👑';
-      btn.insertBefore(crown, btn.firstChild);
-    }
-  } else {
-    var img2 = btn.querySelector('img');
-    if (img2) img2.style.display = '';
-    if (existing) existing.remove();
-  }
-}
+function setSubIcon(premium) {}
 
 function getTgUid() {
   var tg = window.Telegram && window.Telegram.WebApp;
   if (!tg) return null;
-  var uid = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
-  if (uid) return uid;
+  try {
+    var uid = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+    if (uid) return String(uid);
+  } catch(e) {}
   try {
     var params = new URLSearchParams(tg.initData);
-    var user = JSON.parse(params.get('user') || '{}');
-    return user.id || null;
+    var user = JSON.parse(decodeURIComponent(params.get('user') || '{}'));
+    if (user.id) return String(user.id);
   } catch(e) {}
   return null;
 }
@@ -443,18 +439,48 @@ function getTgUid() {
 function applySubscribedUI(expiresStr) {
   setSubIcon(true);
   var badge = document.getElementById('sub-vip-badge');
-  if (badge) badge.classList.remove('sub-vip-hidden');
+
+  var tier = 'start';
+  var planName = 'Старт';
   if (expiresStr) {
     var d = new Date(expiresStr);
+    var forever = d.getFullYear() > 2100;
+    if (forever) {
+      tier = 'legend'; planName = 'Легенда';
+    } else {
+      var days = Math.ceil((d - new Date()) / 86400000);
+      if (days > 300) { tier = 'pro'; planName = 'Про'; }
+    }
     var infoEl = document.getElementById('sub-info-text');
     if (infoEl) {
-      infoEl.textContent = d.getFullYear() > 2100 ? 'Навсегда' : 'Активна до ' + d.toLocaleDateString('ru-RU');
+      infoEl.textContent = forever
+        ? 'Легенда · Навсегда'
+        : planName + ' · Осталось ' + days + ' ' + (days === 1 ? 'день' : days < 5 ? 'дня' : 'дней');
     }
+  }
+
+  var tierStyles = {
+    start:  { bg: 'linear-gradient(90deg,#707088,#a0a0b8)', color: '#fff' },
+    pro:    { bg: 'linear-gradient(90deg,#d4a017,#f5d050)', color: '#000' },
+    legend: { bg: 'linear-gradient(90deg,#c0204a,#e0306a)', color: '#fff' }
+  };
+  var s = tierStyles[tier];
+
+  if (badge) {
+    badge.innerHTML = '<img src="vip.png" alt="" style="width:16px;height:16px;object-fit:contain;margin-right:5px"> Подписка оформлена';
+    badge.style.display = 'flex';
+    badge.style.background = s.bg;
+    badge.style.color = s.color;
+    badge.style.fontSize = '12px';
+    badge.style.fontWeight = '700';
+    badge.style.borderRadius = '20px';
+    badge.style.padding = '5px 12px';
+    badge.style.cursor = 'pointer';
+    badge.style.alignItems = 'center';
   }
 }
 
 async function checkSubscription() {
-  // Apply cached status immediately
   var cached = localStorage.getItem('sub_expires');
   if (cached) applySubscribedUI(cached);
 
@@ -470,7 +496,7 @@ async function checkSubscription() {
       localStorage.removeItem('sub_expires');
       setSubIcon(false);
       var badge = document.getElementById('sub-vip-badge');
-      if (badge) badge.classList.add('sub-vip-hidden');
+      if (badge) { badge.classList.add('sub-vip-hidden'); badge.classList.remove('sub-vip-active'); }
     }
   } catch(e) {}
 }
@@ -520,7 +546,12 @@ async function paySelected() {
   }
 }
 
-function openSub() { setScreen('sub'); checkSubscription(); }
+function openSub() {
+  setScreen('sub');
+  var cached = localStorage.getItem('sub_expires');
+  if (cached) applySubscribedUI(cached);
+  checkSubscription();
+}
 
 function buyStars() {
   var tg = window.Telegram && window.Telegram.WebApp;
@@ -556,6 +587,22 @@ async function buyPlan(plan) {
   }
 }
 
+function openWhyModal() {
+  document.getElementById('why-modal').style.display = 'flex';
+}
+function closeWhyModal() {
+  document.getElementById('why-modal').style.display = 'none';
+}
+
+function closeOnboarding() {
+  localStorage.setItem('ob_done', '1');
+  document.getElementById('onboarding').style.display = 'none';
+}
+
+if (!localStorage.getItem('ob_done')) {
+  document.getElementById('onboarding').style.display = 'flex';
+}
+
 init();
 
 // Scroll-to-top button
@@ -571,8 +618,17 @@ init();
     }
   }
 
-  document.getElementById('books-list').addEventListener('scroll', onScroll, { passive: true });
-  document.getElementById('detail-content').addEventListener('scroll', onScroll, { passive: true });
+  function onScrollBooks() {
+    var onBooksTab = document.getElementById('screen-list').classList.contains('active') ||
+                     document.getElementById('screen-detail').classList.contains('active');
+    if (onBooksTab && this.scrollTop > threshold) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  }
+  document.getElementById('books-list').addEventListener('scroll', onScrollBooks, { passive: true });
+  document.getElementById('detail-content').addEventListener('scroll', onScrollBooks, { passive: true });
 })();
 
 function scrollToTop() {
