@@ -40,6 +40,7 @@ var GENRE_OPTIONS = [
   { key: 'фэнтези',           label: 'Фэнтези' },
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
+  { key: 'игры',              label: 'Игры' },
 ];
 
 function buildRecommendWeights() {
@@ -235,6 +236,7 @@ var GENRES = [
   { key: 'фэнтези',           label: 'Фэнтези' },
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
+  { key: 'игры',              label: 'Игры' },
 ];
 
 function topCardHtml(b) {
@@ -324,6 +326,7 @@ function openBook(id) {
     '<div class="detail-meta">' +
     '<div class="detail-book-title">' + b.title + (b.year ? ' <span class="detail-year-inline">' + formatYear(b.year) + '</span>' : '') + '</div>' +
     '<div class="detail-book-author">' + b.author + '</div>' +
+    (b.genre ? '<div class="detail-book-genre">' + (GENRES.find(function(g){ return g.key === b.genre; }) || {label: b.genre}).label + '</div>' : '') +
     (b.description ? '<div class="detail-book-desc">' + b.description + '</div>' : '') +
     '</div></div>' +
     '<div class="thoughts-title">10 ГЛАВНЫХ МЫСЛЕЙ</div>' +
