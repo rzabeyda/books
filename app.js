@@ -25,11 +25,11 @@ var GENRE_OPTIONS = [
   { key: 'биографии',         label: 'Биографии' },
   { key: 'саморазвитие',      label: 'Саморазвитие' },
   { key: 'психология',        label: 'Психология' },
-  { key: 'блогеры',           label: 'Блогеры' },
-  { key: 'стримеры',          label: 'Стримеры' },
+  { key: 'блогеры',           label: 'Блогеры и стримеры' },
   { key: 'цитаты',            label: 'Цитаты' },
   { key: 'классика',          label: 'Классика' },
   { key: 'художественная',    label: 'Художественная' },
+  { key: 'романы',             label: 'Романы' },
   { key: 'философия',         label: 'Философия' },
   { key: 'бизнес',            label: 'Бизнес' },
   { key: 'отношения',         label: 'Отношения' },
@@ -37,7 +37,6 @@ var GENRE_OPTIONS = [
   { key: 'история',           label: 'История' },
   { key: 'политика',          label: 'Политика' },
   { key: 'сказки',            label: 'Сказки и фэнтези' },
-  { key: 'фэнтези',           label: 'Фэнтези' },
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
@@ -222,11 +221,11 @@ var GENRES = [
   { key: 'психология',        label: 'Психология' },
   { key: 'история успеха',    label: 'История успеха' },
   { key: 'саморазвитие',      label: 'Саморазвитие' },
-  { key: 'блогеры',           label: 'Блогеры' },
-  { key: 'стримеры',          label: 'Стримеры' },
+  { key: 'блогеры',           label: 'Блогеры и стримеры' },
   { key: 'цитаты',            label: 'Цитаты' },
   { key: 'классика',          label: 'Классика' },
   { key: 'художественная',    label: 'Художественная' },
+  { key: 'романы',             label: 'Романы' },
   { key: 'философия',         label: 'Философия' },
   { key: 'бизнес',            label: 'Бизнес' },
   { key: 'отношения',         label: 'Отношения' },
@@ -234,7 +233,6 @@ var GENRES = [
   { key: 'история',           label: 'История' },
   { key: 'политика',          label: 'Политика' },
   { key: 'сказки',            label: 'Сказки и фэнтези' },
-  { key: 'фэнтези',           label: 'Фэнтези' },
   { key: 'наука',             label: 'Наука' },
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
@@ -383,9 +381,9 @@ function openBook(id) {
     '<div class="detail-hero">' +
     '<div class="detail-cover">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="detail-meta">' +
-    '<div class="detail-book-title">' + b.title + (b.year ? ' <span class="detail-year-inline">' + formatYear(b.year) + '</span>' : '') + '</div>' +
+    '<div class="detail-book-title">' + b.title + '</div>' +
     '<div class="detail-book-author">' + b.author + '</div>' +
-    (b.genre ? '<div class="detail-book-genre">' + (GENRES.find(function(g){ return g.key === b.genre; }) || {label: b.genre}).label + '</div>' : '') +
+    (b.genre ? '<div class="detail-book-genre">' + (GENRES.find(function(g){ return g.key === b.genre; }) || {label: b.genre}).label + (b.year ? ' | <span class="detail-year-inline" style="text-transform:none">' + formatYear(b.year) + '</span>' : '') + '</div>' : '') +
     (b.description ? '<div class="detail-book-desc">' + b.description + '</div>' : '') +
     '</div></div>' +
     '<div class="thoughts-title">10 ГЛАВНЫХ МЫСЛЕЙ</div>' +
