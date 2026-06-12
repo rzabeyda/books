@@ -2,21 +2,20 @@ var allBooks = [];
 var API = 'https://books.zabeyda.lol';
 var readBooks = new Set(JSON.parse(localStorage.getItem('readBooks') || '[]'));
 var activeGenre = 'all';
-var activeSort = 'sales';
+var activeSort = 'sections';
 var currentListForNav = [];
 var allReactions = {};
+var autoScrollStopped = false;
 
 var SORT_OPTIONS = [
+  { key: 'sections',    label: 'Разделы' },
   { key: 'sales',       label: 'Тираж' },
   { key: 'newer',       label: 'Новое' },
   { key: 'recommended', label: 'Рекомендованные' },
   { key: 'read',        label: 'Прочитанные' },
   { key: 'unread',      label: 'Не прочитанные' },
-  { key: 'older',       label: 'Старее → Новее' },
   { key: 'az',          label: 'По названию А → Я' },
   { key: 'za',          label: 'По названию Я → А' },
-  { key: 'author',      label: 'По автору А → Я' },
-  { key: 'authorza',    label: 'По автору Я → А' },
 ];
 
 var GENRE_OPTIONS = [
@@ -61,7 +60,15 @@ function recommendScore(b, weights) {
 
 function sortBooks(books, sort) {
   var s = books.slice();
-  if (sort === 'sales')    return s.sort(function(a,b){ return b.world_reads - a.world_reads; });
+  if (sort === 'sections') return s.sort(function(a,b){ return b.world_reads - a.world_reads; });
+  if (sort === 'sales') {
+    var skipGenres = ['история бренда', 'история успеха'];
+    return s.sort(function(a,b){
+      var ra = skipGenres.indexOf(a.genre) >= 0 ? -1 : (a.world_reads || 0);
+      var rb = skipGenres.indexOf(b.genre) >= 0 ? -1 : (b.world_reads || 0);
+      return rb - ra;
+    });
+  }
   if (sort === 'newer')    return s.sort(function(a,b){ return b.id - a.id; });
   if (sort === 'older')    return s.sort(function(a,b){ return (a.year||0) - (b.year||0); });
   if (sort === 'az')       return s.sort(function(a,b){ return a.title.localeCompare(b.title, 'ru'); });
@@ -135,7 +142,7 @@ function applySort(key) {
 }
 
 function resetFilters() {
-  activeSort = 'sales';
+  activeSort = 'sections';
   updateSortLabel();
   applyGenre('all');
 }
@@ -205,7 +212,7 @@ function md(text) {
 
 function coverImg(src, alt) {
   if (!src) return '';
-  return '<img src="' + src + '?v=2" alt="' + alt + '" loading="lazy" onerror="this.style.display=\'none\'">';
+  return '<img src="' + src + '?v=3" alt="' + alt + '" loading="lazy" onerror="this.style.display=\'none\'">';
 }
 
 function formatYear(y) {
@@ -249,6 +256,7 @@ function topCardHtml(b) {
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
     '<div class="top-card-author">' + b.author + '</div>' +
+    (b.net_worth ? '<div class="top-card-networth">' + b.net_worth + '</div>' : '') +
     (b.world_reads_label ? '<div class="top-card-reads">' + b.world_reads_label + '</div>' : '') +
     '</div>';
 }
@@ -260,7 +268,7 @@ function renderList(books) {
   var genreHtml = '';
   var searching = books.length !== allBooks.length;
 
-  if (!searching && activeSort !== 'newer') {
+  if (!searching && activeSort === 'sections') {
     var genresSorted = GENRES.map(function(g) {
       return { g: g, books: sorted.filter(function(b) { return b.genre === g.key; }) };
     }).filter(function(x) { return x.books.length > 0; })
@@ -269,9 +277,11 @@ function renderList(books) {
       });
 
     genresSorted.forEach(function(x) {
-      var sectionBooks = x.g.key === 'история успеха'
-        ? x.books.slice().sort(function(a,b){ return a.id - b.id; })
-        : x.books.slice().sort(function(a,b){ return (readBooks.has(a.id)?1:0) - (readBooks.has(b.id)?1:0); });
+      var sectionBooks = x.books.slice().sort(function(a,b){
+        var ra = readBooks.has(a.id) ? 1 : 0, rb = readBooks.has(b.id) ? 1 : 0;
+        if (ra !== rb) return ra - rb;
+        return (b.world_reads || 0) - (a.world_reads || 0);
+      });
       genreHtml +=
         '<div class="section-label" onclick="applyGenre(\'' + x.g.key + '\')" style="cursor:pointer">' + x.g.label + ' →</div>' +
         '<div class="top-scroll">' + sectionBooks.map(topCardHtml).join('') + '</div>';
@@ -285,12 +295,12 @@ function renderList(books) {
       '<div class="book-info">' +
       '<div class="book-title">' + b.title + '</div>' +
       '<div class="book-author">' + b.author + '</div>' +
-      (b.world_reads_label ? '<div class="book-reads">' + b.world_reads_label + '</div>' : '') +
+      (b.net_worth ? '<div class="book-reads" style="color:#f5c518">' + b.net_worth + '</div>' : (b.world_reads_label ? '<div class="book-reads">' + b.world_reads_label + '</div>' : '')) +
       '</div></div>';
   }).join('');
 
   var resetEl = document.getElementById('genre-reset-btn');
-  if (resetEl) resetEl.style.display = (activeGenre !== 'all' || activeSort !== 'sales') ? 'flex' : 'none';
+  if (resetEl) resetEl.style.display = (activeGenre !== 'all' || activeSort !== 'sections') ? 'flex' : 'none';
 
   document.getElementById('books-list').innerHTML =
     genreHtml +
@@ -300,21 +310,17 @@ function renderList(books) {
   if (!searching && activeSort !== 'newer') {
     setTimeout(function() {
       var el = document.querySelector('.top-scroll');
-      if (!el) return;
-      var speed = 0.5;
-      var active = true;
+      if (!el || autoScrollStopped) return;
       function tick() {
-        if (!active) return;
-        el.scrollLeft += speed;
+        if (autoScrollStopped) return;
+        el.scrollLeft += 0.5;
         if (el.scrollLeft >= el.scrollWidth - el.offsetWidth) {
           el.scrollLeft = 0;
         }
         requestAnimationFrame(tick);
       }
-      el.addEventListener('touchstart', function() { active = false; });
-      el.addEventListener('touchend',   function() { active = true; requestAnimationFrame(tick); });
-      el.addEventListener('mousedown',  function() { active = false; });
-      el.addEventListener('mouseup',    function() { active = true; requestAnimationFrame(tick); });
+      el.addEventListener('touchstart', function() { autoScrollStopped = true; }, { passive: true });
+      el.addEventListener('mousedown',  function() { autoScrollStopped = true; });
       requestAnimationFrame(tick);
     }, 500);
   }
@@ -468,7 +474,11 @@ function goHome() {
   document.getElementById('genre-tabs').style.display = 'flex';
   document.getElementById('search-input').value = '';
   setScreen('list');
-  renderList(filterByGenre(allBooks, activeGenre));
+  if (activeGenre !== 'all' || activeSort !== 'sections') {
+    resetFilters();
+  } else {
+    renderList(allBooks);
+  }
 }
 
 function setScreen(name) {
