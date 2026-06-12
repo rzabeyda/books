@@ -64,7 +64,11 @@ function recommendScore(b, weights) {
 
 function sortBooks(books, sort) {
   var s = books.slice();
-  if (sort === 'sections') return s.sort(function(a,b){ return b.world_reads - a.world_reads; });
+  if (sort === 'sections') return s.sort(function(a,b){
+    var ra = readBooks.has(a.id) ? 1 : 0, rb = readBooks.has(b.id) ? 1 : 0;
+    if (ra !== rb) return ra - rb;
+    return (b.world_reads || 0) - (a.world_reads || 0);
+  });
   if (sort === 'sales') {
     var skipGenres = ['история бренда', 'история успеха'];
     return s.sort(function(a,b){
