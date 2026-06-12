@@ -31,7 +31,11 @@ var GENRE_OPTIONS = [
   { key: 'романы',             label: 'Романы' },
   { key: 'философия',         label: 'Философия' },
   { key: 'бизнес',            label: 'Бизнес' },
-  { key: 'отношения',         label: 'Отношения' },
+  { key: 'отношения',         label: 'Любовь / Отношения' },
+  { key: 'семья',             label: 'Семья / Дети' },
+  { key: 'здоровье',          label: 'Здоровье' },
+  { key: 'детективы',         label: 'Детективы' },
+  { key: 'фантастика',        label: 'Фантастика' },
   { key: 'мемуары',           label: 'Мемуары' },
   { key: 'история',           label: 'История' },
   { key: 'политика',          label: 'Политика' },
@@ -238,7 +242,11 @@ var GENRES = [
   { key: 'романы',             label: 'Романы' },
   { key: 'философия',         label: 'Философия' },
   { key: 'бизнес',            label: 'Бизнес' },
-  { key: 'отношения',         label: 'Отношения' },
+  { key: 'отношения',         label: 'Любовь / Отношения' },
+  { key: 'семья',             label: 'Семья / Дети' },
+  { key: 'здоровье',          label: 'Здоровье' },
+  { key: 'детективы',         label: 'Детективы' },
+  { key: 'фантастика',        label: 'Фантастика' },
   { key: 'мемуары',           label: 'Мемуары' },
   { key: 'история',           label: 'История' },
   { key: 'политика',          label: 'Политика' },
@@ -255,9 +263,8 @@ function topCardHtml(b) {
   return '<div class="top-card' + (isRead ? ' read' : '') + '" onclick="openBook(' + b.id + ')">' +
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
-    '<div class="top-card-author">' + b.author + '</div>' +
-    (b.net_worth ? '<div class="top-card-networth">' + b.net_worth + '</div>' : '') +
-    (b.world_reads_label ? '<div class="top-card-reads">' + b.world_reads_label + '</div>' : '') +
+    '<div class="top-card-author">' + (b.platform || b.role || b.author) + '</div>' +
+    (b.life_years ? '<div class="top-card-years">' + b.life_years + '</div>' : (b.net_worth ? '<div class="top-card-networth">' + b.net_worth + '</div>' : (b.world_reads_label ? '<div class="top-card-reads">' + b.world_reads_label + '</div>' : ''))) +
     '</div>';
 }
 
@@ -294,7 +301,7 @@ function renderList(books) {
       '<div class="grid-img">' + coverImg(b.cover, b.title) + '</div>' +
       '<div class="book-info">' +
       '<div class="book-title">' + b.title + '</div>' +
-      '<div class="book-author">' + b.author + '</div>' +
+      '<div class="book-author">' + (b.platform || b.role || b.author) + '</div>' +
       (b.net_worth ? '<div class="book-reads" style="color:#f5c518">' + b.net_worth + '</div>' : (b.world_reads_label ? '<div class="book-reads">' + b.world_reads_label + '</div>' : '')) +
       '</div></div>';
   }).join('');
@@ -392,7 +399,7 @@ function openBook(id) {
     '<div class="detail-cover">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="detail-meta">' +
     '<div class="detail-book-title">' + b.title + '</div>' +
-    '<div class="detail-book-author">' + b.author + '</div>' +
+    (b.author && b.author.trim() !== b.title.trim() ? '<div class="detail-book-author">' + b.author + '</div>' : '') +
     (b.genre ? '<div class="detail-book-genre">' + (GENRES.find(function(g){ return g.key === b.genre; }) || {label: b.genre}).label + (b.year ? ' | <span class="detail-year-inline" style="text-transform:none">' + formatYear(b.year) + '</span>' : '') + '</div>' : '') +
     (b.description ? '<div class="detail-book-desc">' + b.description + '</div>' : '') +
     '</div></div>' +
