@@ -64,6 +64,7 @@ html, body { height: 100%; background: #000; color: var(--text); font-family: -a
 .top-card-author { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .top-card-reads { font-size: 10px; color: var(--accent); font-weight: 700; margin-top: 2px; }
 .top-card-networth { font-size: 10px; color: #f5c518; font-weight: 700; margin-top: 2px; }
+.top-card-years { font-size: 10px; color: #4a9eff; font-weight: 700; margin-top: 2px; }
 
 .books-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 14px; }
 .books-grid.grid--3col { grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 10px 14px; }
