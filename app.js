@@ -41,6 +41,7 @@ var GENRE_OPTIONS = [
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
   { key: 'империи',           label: 'Империи' },
+  { key: 'история бренда',    label: 'История брендов' },
 ];
 
 function buildRecommendWeights() {
@@ -174,6 +175,8 @@ async function init() {
     var booksRes = await fetch(API + '/books.json?v=' + Date.now());
     allBooks = await booksRes.json();
     renderList(allBooks);
+    // если шторка разделов уже открыта — обновить счётчики
+    if (document.getElementById('sheet').classList.contains('show')) openSheet('genre');
     checkSubscription();
     setTimeout(checkSubscription, 1500);
   } catch(e) {
@@ -202,7 +205,7 @@ function md(text) {
 
 function coverImg(src, alt) {
   if (!src) return '';
-  return '<img src="' + src + '" alt="' + alt + '" loading="lazy" onerror="this.style.display=\'none\'">';
+  return '<img src="' + src + '?v=2" alt="' + alt + '" loading="lazy" onerror="this.style.display=\'none\'">';
 }
 
 function formatYear(y) {
@@ -237,6 +240,7 @@ var GENRES = [
   { key: 'священные писания', label: 'Священные писания' },
   { key: 'игры',              label: 'Игры' },
   { key: 'империи',           label: 'Империи' },
+  { key: 'история бренда',    label: 'История брендов' },
 ];
 
 function topCardHtml(b) {
@@ -269,7 +273,7 @@ function renderList(books) {
         ? x.books.slice().sort(function(a,b){ return a.id - b.id; })
         : x.books.slice().sort(function(a,b){ return (readBooks.has(a.id)?1:0) - (readBooks.has(b.id)?1:0); });
       genreHtml +=
-        '<div class="section-label">' + x.g.label + '</div>' +
+        '<div class="section-label" onclick="applyGenre(\'' + x.g.key + '\')" style="cursor:pointer">' + x.g.label + ' →</div>' +
         '<div class="top-scroll">' + sectionBooks.map(topCardHtml).join('') + '</div>';
     });
   }
