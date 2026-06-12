@@ -10,13 +10,13 @@ var SORT_OPTIONS = [
   { key: 'sales',       label: 'Тираж' },
   { key: 'newer',       label: 'Новое' },
   { key: 'recommended', label: 'Рекомендованные' },
+  { key: 'read',        label: 'Прочитанные' },
+  { key: 'unread',      label: 'Не прочитанные' },
   { key: 'older',       label: 'Старее → Новее' },
   { key: 'az',          label: 'По названию А → Я' },
   { key: 'za',          label: 'По названию Я → А' },
   { key: 'author',      label: 'По автору А → Я' },
   { key: 'authorza',    label: 'По автору Я → А' },
-  { key: 'read',        label: 'Прочитанные' },
-  { key: 'unread',      label: 'Не прочитанные' },
 ];
 
 var GENRE_OPTIONS = [
@@ -267,7 +267,7 @@ function renderList(books) {
     genresSorted.forEach(function(x) {
       var sectionBooks = x.g.key === 'история успеха'
         ? x.books.slice().sort(function(a,b){ return a.id - b.id; })
-        : x.books;
+        : x.books.slice().sort(function(a,b){ return (readBooks.has(a.id)?1:0) - (readBooks.has(b.id)?1:0); });
       genreHtml +=
         '<div class="section-label">' + x.g.label + '</div>' +
         '<div class="top-scroll">' + sectionBooks.map(topCardHtml).join('') + '</div>';
