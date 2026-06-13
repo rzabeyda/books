@@ -21,7 +21,7 @@ var SORT_OPTIONS = [
 
 var GENRE_OPTIONS = [
   { key: 'all',               label: 'Все книги' },
-  { key: 'favorites',         label: '❤️ Избранное' },
+  { key: 'от автора',         label: 'От автора' },
   { key: 'история успеха',    label: 'История успеха' },
   { key: 'биографии',         label: 'Биографии' },
   { key: 'саморазвитие',      label: 'Саморазвитие' },
@@ -47,6 +47,7 @@ var GENRE_OPTIONS = [
   { key: 'игры',              label: 'Игры' },
   { key: 'империи',           label: 'Империи' },
   { key: 'история бренда',    label: 'История брендов' },
+  { key: 'favorites',         label: 'Избранное' },
 ];
 
 function buildRecommendWeights() {
@@ -121,7 +122,7 @@ function openSheet(type) {
     var favOpt = genreWithCounts.filter(function(x){ return x.o.key === 'favorites'; });
     var rest = genreWithCounts.filter(function(x){ return x.o.key !== 'all' && x.o.key !== 'favorites'; })
       .sort(function(a, b){ return b.count - a.count; });
-    list.innerHTML = allOpt.concat(favOpt).concat(rest).map(function(x) {
+    list.innerHTML = allOpt.concat(rest).concat(favOpt).map(function(x) {
       var active = x.o.key === activeGenre;
       return '<button class="sheet-item' + (active ? ' active' : '') + '" onclick="applyGenre(\'' + x.o.key + '\')">' +
         x.o.label + '<span class="sheet-count">' + x.count + '</span>' + (active ? '<span class="sheet-check">✓</span>' : '') + '</button>';
@@ -302,7 +303,7 @@ function topCardHtml(b, genreKey) {
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
     '<div class="top-card-author">' + (b.platform || b.role || b.author) + '</div>' +
-    (b.life_years ? '<div class="top-card-years">' + b.life_years + '</div>' : (b.net_worth ? '<div class="top-card-networth">' + b.net_worth + '</div>' : (b.world_reads_label ? '<div class="top-card-reads">' + b.world_reads_label + '</div>' : ''))) +
+    (b.year ? '<div class="top-card-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
     '</div>';
 }
 
@@ -340,7 +341,7 @@ function renderList(books) {
       '<div class="book-info">' +
       '<div class="book-title">' + b.title + '</div>' +
       '<div class="book-author">' + (b.platform || b.role || b.author) + '</div>' +
-      (b.net_worth ? '<div class="book-reads" style="color:#f5c518">' + b.net_worth + '</div>' : (b.world_reads_label ? '<div class="book-reads">' + b.world_reads_label + '</div>' : '')) +
+      (b.year ? '<div class="book-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
       '</div></div>';
   }).join('');
 
@@ -416,7 +417,8 @@ function openBook(id, genreKey) {
   var b = allBooks.filter(function(x) { return x.id === id; })[0];
   if (!b) return;
   if (genreKey) {
-    currentListForNav = allBooks.filter(function(x) { return x.genre === genreKey; });
+    activeGenre = genreKey;
+    currentListForNav = filterByGenre(allBooks, genreKey);
   }
 
   var titleEl = document.getElementById('detail-title-top');
@@ -530,11 +532,9 @@ function goHome() {
   document.getElementById('genre-tabs').style.display = 'flex';
   document.getElementById('search-input').value = '';
   setScreen('list');
-  if (activeGenre !== 'all' || activeSort !== 'sections') {
-    resetFilters();
-  } else {
-    renderList(allBooks);
-  }
+  renderList(filterByGenre(allBooks, activeGenre));
+  var opt = GENRE_OPTIONS.find(function(o){ return o.key === activeGenre; });
+  if (opt) document.getElementById('genre-label').textContent = opt.label;
 }
 
 function setScreen(name) {
