@@ -1,6 +1,7 @@
 var allBooks = [];
 var API = 'https://books.zabeyda.lol';
 var readBooks = new Set(JSON.parse(localStorage.getItem('readBooks') || '[]'));
+var favoriteBooks = new Set(JSON.parse(localStorage.getItem('favoriteBooks') || '[]'));
 var activeGenre = 'all';
 var activeSort = 'sections';
 var currentListForNav = [];
@@ -20,6 +21,7 @@ var SORT_OPTIONS = [
 
 var GENRE_OPTIONS = [
   { key: 'all',               label: 'Все книги' },
+  { key: 'favorites',         label: '❤️ Избранное' },
   { key: 'история успеха',    label: 'История успеха' },
   { key: 'биографии',         label: 'Биографии' },
   { key: 'саморазвитие',      label: 'Саморазвитие' },
@@ -112,13 +114,14 @@ function openSheet(type) {
   } else {
     title.textContent = 'Раздел';
     var genreWithCounts = GENRE_OPTIONS.map(function(o) {
-      var count = o.key === 'all' ? allBooks.length : allBooks.filter(function(b){ return b.genre === o.key; }).length;
+      var count = o.key === 'all' ? allBooks.length : o.key === 'favorites' ? favoriteBooks.size : allBooks.filter(function(b){ return b.genre === o.key; }).length;
       return { o: o, count: count };
     });
     var allOpt = genreWithCounts.filter(function(x){ return x.o.key === 'all'; });
-    var rest = genreWithCounts.filter(function(x){ return x.o.key !== 'all'; })
+    var favOpt = genreWithCounts.filter(function(x){ return x.o.key === 'favorites'; });
+    var rest = genreWithCounts.filter(function(x){ return x.o.key !== 'all' && x.o.key !== 'favorites'; })
       .sort(function(a, b){ return b.count - a.count; });
-    list.innerHTML = allOpt.concat(rest).map(function(x) {
+    list.innerHTML = allOpt.concat(favOpt).concat(rest).map(function(x) {
       var active = x.o.key === activeGenre;
       return '<button class="sheet-item' + (active ? ' active' : '') + '" onclick="applyGenre(\'' + x.o.key + '\')">' +
         x.o.label + '<span class="sheet-count">' + x.count + '</span>' + (active ? '<span class="sheet-check">✓</span>' : '') + '</button>';
@@ -190,7 +193,8 @@ async function init() {
     var booksRes = await fetch(API + '/books.json?v=' + Date.now());
     allBooks = await booksRes.json();
     renderList(allBooks);
-    // если шторка разделов уже открыта — обновить счётчики
+    var bookParam = new URLSearchParams(window.location.search).get('book');
+    if (bookParam) openBook(parseInt(bookParam));
     if (document.getElementById('sheet').classList.contains('show')) openSheet('genre');
     checkSubscription();
     setTimeout(checkSubscription, 1500);
@@ -231,7 +235,37 @@ function formatYear(y) {
 
 function filterByGenre(books, genre) {
   if (genre === 'all') return books;
+  if (genre === 'favorites') return books.filter(function(b) { return favoriteBooks.has(b.id); });
   return books.filter(function(b) { return b.genre === genre; });
+}
+
+function saveFavoriteBooks() {
+  localStorage.setItem('favoriteBooks', JSON.stringify([...favoriteBooks]));
+}
+
+function toggleFavorite(id) {
+  if (favoriteBooks.has(id)) {
+    favoriteBooks.delete(id);
+  } else {
+    favoriteBooks.add(id);
+  }
+  saveFavoriteBooks();
+  var isFav = favoriteBooks.has(id);
+  var btn = document.getElementById('fav-btn');
+  if (btn) btn.textContent = isFav ? '❤️' : '🤍';
+}
+
+function shareBook(id) {
+  var b = allBooks.filter(function(x) { return x.id === id; })[0];
+  if (!b) return;
+  var text = '📖 ' + b.title + (b.author ? ' — ' + b.author : '') + '\n\nЧитай главные мысли из этой книги 👇';
+  var url = 'https://books.zabeyda.lol/?book=' + id;
+  var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
+  if (window.Telegram && Telegram.WebApp) {
+    Telegram.WebApp.openTelegramLink(shareUrl);
+  } else {
+    window.open(shareUrl, '_blank');
+  }
 }
 
 var GENRES = [
@@ -262,9 +296,9 @@ var GENRES = [
   { key: 'история бренда',    label: 'История брендов' },
 ];
 
-function topCardHtml(b) {
+function topCardHtml(b, genreKey) {
   var isRead = readBooks.has(b.id);
-  return '<div class="top-card' + (isRead ? ' read' : '') + '" onclick="openBook(' + b.id + ')">' +
+  return '<div class="top-card' + (isRead ? ' read' : '') + '" onclick="openBook(' + b.id + ',\'' + genreKey + '\')">' +
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
     '<div class="top-card-author">' + (b.platform || b.role || b.author) + '</div>' +
@@ -295,7 +329,7 @@ function renderList(books) {
       });
       genreHtml +=
         '<div class="section-label" onclick="applyGenre(\'' + x.g.key + '\')" style="cursor:pointer">' + x.g.label + ' →</div>' +
-        '<div class="top-scroll">' + sectionBooks.map(topCardHtml).join('') + '</div>';
+        '<div class="top-scroll">' + sectionBooks.map(function(b){ return topCardHtml(b, x.g.key); }).join('') + '</div>';
     });
   }
 
@@ -320,19 +354,19 @@ function renderList(books) {
 
   if (!searching && activeSort !== 'newer') {
     setTimeout(function() {
-      var el = document.querySelector('.top-scroll');
-      if (!el || autoScrollStopped) return;
-      function tick() {
-        if (autoScrollStopped) return;
-        el.scrollLeft += 0.5;
-        if (el.scrollLeft >= el.scrollWidth - el.offsetWidth) {
-          el.scrollLeft = 0;
+      var els = document.querySelectorAll('.top-scroll');
+      if (!els.length) return;
+      els.forEach(function(el) {
+        function tick() {
+          if (autoScrollStopped) return;
+          el.scrollLeft += 0.45;
+          if (el.scrollLeft >= el.scrollWidth - el.offsetWidth) {
+            el.scrollLeft = 0;
+          }
+          requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
-      }
-      el.addEventListener('touchstart', function() { autoScrollStopped = true; }, { passive: true });
-      el.addEventListener('mousedown',  function() { autoScrollStopped = true; });
-      requestAnimationFrame(tick);
+      });
     }, 500);
   }
 }
@@ -377,9 +411,13 @@ function showSuggestToast() {
   setTimeout(function() { toast.style.display = 'none'; }, 3000);
 }
 
-function openBook(id) {
+function openBook(id, genreKey) {
+  autoScrollStopped = true;
   var b = allBooks.filter(function(x) { return x.id === id; })[0];
   if (!b) return;
+  if (genreKey) {
+    currentListForNav = allBooks.filter(function(x) { return x.genre === genreKey; });
+  }
 
   var titleEl = document.getElementById('detail-title-top');
   if (titleEl) titleEl.textContent = b.title;
@@ -396,11 +434,18 @@ function openBook(id) {
   }).join('');
 
   var isRead = readBooks.has(b.id);
+  var isFav = favoriteBooks.has(b.id);
   var r = allReactions[String(b.id)] || { up: 0, down: 0 };
   var userVote = localStorage.getItem('vote_' + b.id);
   document.getElementById('detail-content').innerHTML =
     '<div class="detail-hero">' +
+    '<div class="detail-cover-wrap">' +
     '<div class="detail-cover">' + coverImg(b.cover, b.title) + '</div>' +
+    '<div class="detail-cover-actions"><div class="detail-cover-actions-inner">' +
+    '<button class="fav-btn" id="fav-btn" onclick="toggleFavorite(' + b.id + ')">' + (isFav ? '❤️' : '🤍') + '</button>' +
+    '<button class="share-btn" onclick="shareBook(' + b.id + ')"><img src="share.png" width="22" height="22" /></button>' +
+    '</div></div>' +
+    '</div>' +
     '<div class="detail-meta">' +
     '<div class="detail-book-title">' + b.title + '</div>' +
     (b.author && b.author.trim() !== b.title.trim() ? '<div class="detail-book-author">' + b.author + '</div>' : '') +
