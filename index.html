@@ -97,6 +97,7 @@
 
     <div id="screen-sub" class="screen sub-screen-flex">
       <div class="sub-header">
+        <button class="donate-star-btn" onclick="openDonateModal()"><img src="icons/star.png" width="22" height="22" alt="⭐" /></button>
         <span class="detail-title-top">Клуб</span>
         <div id="sub-vip-badge" class="sub-vip-badge sub-vip-hidden" onclick="showSubInfo()"><img src="vip.png" alt="" style="width:16px;height:16px;object-fit:contain;margin-right:5px"> Подписка оформлена</div>
       </div>
@@ -163,7 +164,7 @@
 
     <div id="why-modal" class="why-modal" style="display:none" onclick="closeWhyModal()">
       <div class="why-modal-box" onclick="event.stopPropagation()">
-        <div class="why-modal-close" onclick="closeWhyModal()">✕</div>
+        <button class="why-modal-close" onclick="closeWhyModal()">✕</button>
         <div class="ob-icon" style="font-size:44px;margin-bottom:12px">📚</div>
         <div class="why-modal-title">Что даёт подписка</div>
         <div class="ob-cards">
@@ -188,6 +189,17 @@
       </div>
     </div>
 
+    <div id="donate-modal" class="why-modal" style="display:none" onclick="closeDonateModal()">
+      <div class="why-modal-box" onclick="event.stopPropagation()">
+        <button class="why-modal-close" onclick="closeDonateModal()">✕</button>
+        <div class="ob-icon" style="font-size:44px;margin-bottom:8px">⭐</div>
+        <div class="why-modal-title">Поддержать автора</div>
+        <div style="color:#888;font-size:13px;text-align:center;margin-bottom:20px">Введи любое количество Telegram Stars</div>
+        <input id="donate-amount-input" class="donate-input" type="number" min="1" max="100000" placeholder="Например, 100" />
+        <button class="ob-btn" style="margin:16px 0 0;width:100%" onclick="submitDonate()">Задонатить ⭐</button>
+      </div>
+    </div>
+
   </div>
   <!-- Suggest book modal -->
   <div id="suggest-modal" style="display:none" class="suggest-overlay" onclick="if(event.target===this)closeSuggestModal()">
@@ -204,6 +216,6 @@
   <!-- Toast -->
   <div id="suggest-toast" style="display:none" class="suggest-toast">✅ Заявка отправлена!</div>
 
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

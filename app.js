@@ -131,6 +131,7 @@ function openSheet(type) {
 
   overlay.classList.add('show');
   sheet.classList.add('show');
+  document.getElementById('scroll-top-btn').classList.remove('visible');
 }
 
 function closeSheet() {
@@ -303,7 +304,7 @@ function topCardHtml(b, genreKey) {
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
     '<div class="top-card-author">' + (b.platform || b.role || b.author) + '</div>' +
-    (b.year ? '<div class="top-card-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
+    (b.world_reads_label ? '<div class="top-card-reads" style="color:#f5c842">' + b.world_reads_label + '</div>' : b.year ? '<div class="top-card-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
     '</div>';
 }
 
@@ -341,7 +342,7 @@ function renderList(books) {
       '<div class="book-info">' +
       '<div class="book-title">' + b.title + '</div>' +
       '<div class="book-author">' + (b.platform || b.role || b.author) + '</div>' +
-      (b.year ? '<div class="book-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
+      (b.world_reads_label ? '<div class="book-reads" style="color:#f5c842">' + b.world_reads_label + '</div>' : b.year ? '<div class="book-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
       '</div></div>';
   }).join('');
 
@@ -727,6 +728,28 @@ function closeWhyModal() {
   document.getElementById('why-modal').style.display = 'none';
 }
 
+function openDonateModal() {
+  document.getElementById('donate-amount-input').value = '';
+  document.getElementById('donate-modal').style.display = 'flex';
+}
+function closeDonateModal() {
+  document.getElementById('donate-modal').style.display = 'none';
+}
+function submitDonate() {
+  var amount = parseInt(document.getElementById('donate-amount-input').value);
+  if (!amount || amount < 1) { alert('Введи количество звёзд'); return; }
+  fetch(API + '/donate?amount=' + amount)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.link) { alert('Ошибка: ' + (data.error || 'неизвестно')); return; }
+      closeDonateModal();
+      Telegram.WebApp.openInvoice(data.link, function(status) {
+        if (status === 'paid') { alert('Спасибо за поддержку! ⭐'); }
+      });
+    })
+    .catch(function() { alert('Ошибка соединения'); });
+}
+
 function closeOnboarding() {
   localStorage.setItem('ob_done', '1');
   document.getElementById('onboarding').style.display = 'none';
@@ -762,6 +785,8 @@ init();
   }
   document.getElementById('books-list').addEventListener('scroll', onScrollBooks, { passive: true });
   document.getElementById('detail-content').addEventListener('scroll', onScrollBooks, { passive: true });
+  document.getElementById('books-list').addEventListener('touchstart', function() { autoScrollStopped = true; }, { passive: true });
+  document.getElementById('books-list').addEventListener('click', function() { autoScrollStopped = true; }, { passive: true });
 })();
 
 function scrollToTop() {
