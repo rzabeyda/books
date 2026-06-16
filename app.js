@@ -426,7 +426,20 @@ function openBook(id, genreKey) {
   if (titleEl) titleEl.textContent = b.title;
   document.getElementById('next-btn').dataset.currentId = b.id;
 
+  var isSubbed = !!localStorage.getItem('sub_expires');
+  var FREE_BOOKS = 10;
+  var freeUsed = JSON.parse(localStorage.getItem('free_books') || '[]');
+  var bookIdStr = String(b.id);
+  var alreadyFree = freeUsed.indexOf(bookIdStr) !== -1;
+  var canRead = isSubbed || alreadyFree || freeUsed.length < FREE_BOOKS;
+
+  if (!alreadyFree && !isSubbed && freeUsed.length < FREE_BOOKS) {
+    freeUsed.push(bookIdStr);
+    localStorage.setItem('free_books', JSON.stringify(freeUsed));
+  }
+
   var thoughtsHtml = b.thoughts.map(function(t, i) {
+    if (!canRead) return '';
     return '<div class="thought-card">' +
       '<div class="thought-num">№' + (i + 1) + '</div>' +
       '<div class="thought-title">' + t.title + '</div>' +
@@ -435,6 +448,16 @@ function openBook(id, genreKey) {
       (t.question ? '<div class="thought-question"><span class="thought-tag">Вопрос себе:</span> ' + t.question + '</div>' : '') +
       '</div>';
   }).join('');
+
+  if (!canRead) {
+    thoughtsHtml = '<div class="paywall-block" onclick="openSub()">' +
+      '<div class="paywall-lock">🔒</div>' +
+      '<div class="paywall-text">Вы прочитали 10 бесплатных книг.<br>Оформите подписку чтобы читать все ' + allBooks.length + ' книг</div>' +
+      '<div class="paywall-btn">Оформить подписку</div>' +
+      '</div>';
+  } else if (!isSubbed) {
+    thoughtsHtml += '<div style="text-align:center;padding:12px;color:#888;font-size:12px;">Осталось бесплатных книг: ' + (FREE_BOOKS - freeUsed.length) + '</div>';
+  }
 
   var isRead = readBooks.has(b.id);
   var isFav = favoriteBooks.has(b.id);

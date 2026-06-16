@@ -30,7 +30,8 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             first_name TEXT,
-            first_seen TEXT DEFAULT (datetime('now'))
+            first_seen TEXT DEFAULT (datetime('now')),
+            blocked INTEGER DEFAULT 0
         )''')
         conn.execute('''CREATE TABLE IF NOT EXISTS subscriptions (
             key TEXT PRIMARY KEY,
@@ -46,6 +47,29 @@ def init_db():
             paid_at TEXT DEFAULT (datetime('now'))
         )''')
         conn.commit()
+
+
+def mark_blocked(user_id: int):
+    with get_db() as conn:
+        conn.execute("UPDATE users SET blocked=1 WHERE user_id=?", (user_id,))
+        conn.commit()
+
+
+def mark_unblocked(user_id: int):
+    with get_db() as conn:
+        conn.execute("UPDATE users SET blocked=0 WHERE user_id=?", (user_id,))
+        conn.commit()
+
+
+async def safe_send(context, chat_id: int, text: str, **kwargs):
+    from telegram.error import Forbidden
+    try:
+        await context.bot.send_message(chat_id=chat_id, text=text, **kwargs)
+        mark_unblocked(chat_id)
+    except Forbidden:
+        mark_blocked(chat_id)
+    except Exception:
+        pass
 
 
 def log_payment(user_id: int, username: str, amount_stars: int, payload: str, ptype: str):
@@ -130,6 +154,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     new_user = is_new_user(user_id)
     save_user(user_id, username, first_name)
+    mark_unblocked(user_id)
 
     if new_user:
         display = f"@{username}" if username else f"id{user_id}"
@@ -147,13 +172,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if username:
         exp_dt = transfer_username_sub(username, user_id)
         if exp_dt:
-            try:
-                await context.bot.send_message(
-                    chat_id=user_id,
-                    text="🎉 Вам открыт доступ VIP до " + exp_dt.strftime('%d.%m.%Y') + "!\n\nПриятного чтения 📚"
-                )
-            except Exception:
-                pass
+            await safe_send(context, user_id, "🎉 Вам открыт доступ VIP до " + exp_dt.strftime('%d.%m.%Y') + "!\n\nПриятного чтения 📚")
 
     subscribed = is_subscribed(user_id)
     url = f"{WEBAPP_URL}?sub=1" if subscribed else WEBAPP_URL
@@ -245,7 +264,7 @@ async def vip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     args = context.args
     if len(args) < 2:
-        await update.message.reply_text("Формат: /vip 30 @username")
+        await update.message.reply_text("Формат: /vip 30 @username  или  /vip 30 123456789")
         return
     try:
         days = int(args[0])
@@ -253,26 +272,47 @@ async def vip_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Дни должны быть числом. Пример: /vip 30 @username")
         return
 
-    username = args[1].lstrip('@').lower()
     expires = datetime.utcnow() + timedelta(days=days)
     exp_str = expires.strftime('%d.%m.%Y')
 
+    target = args[1].lstrip('@')
+
+    # Если передан числовой user_id — используем напрямую
+    if target.isdigit():
+        uid = int(target)
+        set_subscription(str(uid), expires)
+        await update.message.reply_text(f"✅ VIP id{uid} на {days} дней до {exp_str}")
+        await safe_send(context, uid, f"🎉 Вам открыт доступ VIP на {days} дней до {exp_str}!\n\nПриятного чтения 📚")
+        return
+
+    username = target.lower()
     uid = get_user_id_by_username(username)
     if uid:
         set_subscription(str(uid), expires)
         await update.message.reply_text(f"✅ VIP @{username} на {days} дней до {exp_str}")
-        try:
-            await context.bot.send_message(
-                chat_id=uid,
-                text=f"🎉 Вам открыт доступ VIP на {days} дней до {exp_str}!\n\nПриятного чтения 📚"
-            )
-        except Exception:
-            pass
+        await safe_send(context, uid, f"🎉 Вам открыт доступ VIP на {days} дней до {exp_str}!\n\nПриятного чтения 📚")
     else:
         set_subscription('@' + username, expires)
         await update.message.reply_text(
-            f"✅ VIP @{username} на {days} дней до {exp_str}\n⚠️ Юзер ещё не открывал бот — уведомление придёт когда зайдёт"
+            f"✅ VIP @{username} на {days} дней до {exp_str}\n⚠️ Юзер не найден в базе — доступ активируется когда откроет бот"
         )
+
+
+async def blocked_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    with get_db() as conn:
+        rows = conn.execute("SELECT user_id, username FROM users WHERE blocked=1").fetchall()
+        total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        blocked = len(rows)
+    if not rows:
+        await update.message.reply_text("Никто не заблокировал бота 👍")
+        return
+    lines = [f"🚫 Заблокировали бота: {blocked} из {total}\n"]
+    for r in rows:
+        name = f"@{r['username']}" if r['username'] else f"id{r['user_id']}"
+        lines.append(name)
+    await update.message.reply_text("\n".join(lines))
 
 
 async def payments_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -301,6 +341,7 @@ def main():
     app.add_handler(CommandHandler("subscribe", subscribe_command))
     app.add_handler(CommandHandler("vip", vip_command))
     app.add_handler(CommandHandler("payments", payments_command))
+    app.add_handler(CommandHandler("blocked", blocked_command))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))

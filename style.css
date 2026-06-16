@@ -95,6 +95,10 @@ html, body { height: 100%; background: #000; color: var(--text); font-family: -a
 .book-author { font-size: 11px; color: var(--muted); }
 .book-reads { font-size: 10px; color: var(--accent); font-weight: 700; margin-top: 2px; }
 .book-card.read { border: 2px solid #4caf50; }
+.paywall-block { margin: 20px 0; padding: 24px 16px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; text-align: center; cursor: pointer; }
+.paywall-lock { font-size: 32px; margin-bottom: 10px; }
+.paywall-text { font-size: 14px; color: #aaa; margin-bottom: 14px; }
+.paywall-btn { display: inline-block; background: #f5c842; color: #000; font-weight: 700; font-size: 14px; padding: 10px 24px; border-radius: 20px; }
 .top-card.read .top-img { box-shadow: 0 0 0 2px #4caf50; border-radius: 10px; }
 
 .detail-header { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid #1c1c1c; flex-shrink: 0; }
