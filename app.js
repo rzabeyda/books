@@ -10,8 +10,8 @@ var autoScrollStopped = false;
 
 var SORT_OPTIONS = [
   { key: 'sections',    label: 'Разделы' },
-  { key: 'sales',       label: 'Тираж' },
   { key: 'newer',       label: 'Новое' },
+  { key: 'sales',       label: 'Популярные' },
   { key: 'recommended', label: 'Рекомендованные' },
   { key: 'read',        label: 'Прочитанные' },
   { key: 'unread',      label: 'Не прочитанные' },
@@ -304,7 +304,7 @@ function topCardHtml(b, genreKey) {
     '<div class="top-img">' + coverImg(b.cover, b.title) + '</div>' +
     '<div class="top-card-title">' + b.title + '</div>' +
     '<div class="top-card-author">' + (b.platform || b.role || b.author) + '</div>' +
-    (b.world_reads_label ? '<div class="top-card-reads" style="color:#f5c842">' + b.world_reads_label + '</div>' : b.year ? '<div class="top-card-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
+    (b.year ? '<div class="top-card-reads" style="color:#5b9cf6">' + formatYear(b.year) + '</div>' : '') +
     '</div>';
 }
 
@@ -342,7 +342,7 @@ function renderList(books) {
       '<div class="book-info">' +
       '<div class="book-title">' + b.title + '</div>' +
       '<div class="book-author">' + (b.platform || b.role || b.author) + '</div>' +
-      (b.world_reads_label ? '<div class="book-reads" style="color:#f5c842">' + b.world_reads_label + '</div>' : b.year ? '<div class="book-reads" style="color:#5b9cf6">' + b.year + '</div>' : '') +
+      (b.year ? '<div class="book-reads" style="color:#5b9cf6">' + formatYear(b.year) + '</div>' : '') +
       '</div></div>';
   }).join('');
 
