@@ -155,7 +155,12 @@ html, body { height: 100%; background: #000; color: var(--text); font-family: -a
 .detail-book-desc { font-size: 12px; color: #aaa; line-height: 1.45; margin-bottom: 4px; }
 .detail-born { font-size: 12px; color: #888; margin-bottom: 8px; }
 .detail-badge { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
-.thoughts-title { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: .08em; text-transform: uppercase; margin: 14px 0 10px; }
+.thoughts-title-row { display:flex; align-items:center; justify-content:space-between; margin: 14px 0 10px; }
+.thoughts-title { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: .08em; text-transform: uppercase; }
+.asc-controls { display:flex; align-items:center; gap:5px; }
+.asc-spd-btn { background:#222; border:1px solid #444; color:#aaa; font-size:11px; padding:4px 7px; border-radius:6px; cursor:pointer; line-height:1; white-space:nowrap; }
+.asc-spd-btn:active { background:#333; }
+.asc-spd-btn--active { background:#fff; color:#000; border-color:#fff; }
 .thoughts-list { display: flex; flex-direction: column; gap: 10px; }
 
 .thought-card {
