@@ -1,5 +1,45 @@
 var allBooks = [];
 var API = 'https://books.zabeyda.lol';
+
+// ── Улучшенный поиск: транслитерация + fuzzy ──────────────────────────────
+var _ruLat = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+var _latRu = {'a':'а','b':'б','c':'к','d':'д','e':'е','f':'ф','g':'г','h':'х','i':'и','j':'й','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','q':'к','r':'р','s':'с','t':'т','u':'у','v':'в','w':'в','x':'кс','y':'й','z':'з'};
+function _tr(s, map) { return s.toLowerCase().replace(/./g, function(c){ return map[c]!==undefined ? map[c] : c; }); }
+function _ruToLat(s){ return _tr(s, _ruLat); }
+function _latToRu(s){ return _tr(s, _latRu); }
+function _editDist(a, b) {
+  var m=a.length, n=b.length, i, j, dp=[];
+  for(i=0;i<=m;i++){ dp[i]=[i]; for(j=1;j<=n;j++) dp[i][j]=i?0:j; }
+  for(i=1;i<=m;i++) for(j=1;j<=n;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function _buildSearchIndex(books) {
+  books.forEach(function(b){
+    var t=b.title.toLowerCase(), a=b.author.toLowerCase();
+    b._sq = t+' '+a+' '+_ruToLat(t)+' '+_ruToLat(a)+' '+_latToRu(t)+' '+_latToRu(a);
+    b._sqWords = b._sq.split(/\s+/).filter(function(w){ return w.length>0; });
+  });
+}
+function _searchMatch(book, q) {
+  if(!q) return true;
+  // быстрая проверка по готовой строке
+  if(book._sq.includes(q)) return true;
+  // транслитерация запроса
+  var qLat=_ruToLat(q), qRu=_latToRu(q);
+  if(qLat!==q && book._sq.includes(qLat)) return true;
+  if(qRu!==q && book._sq.includes(qRu)) return true;
+  // пословный fuzzy (edit distance 1) для слов ≥4 символов
+  var qWords=q.split(/\s+/).filter(function(w){ return w.length>=4; });
+  if(!qWords.length) return false;
+  return qWords.every(function(qw){
+    return book._sqWords.some(function(bw){
+      if(bw.includes(qw)||qw.includes(bw)) return true;
+      if(Math.abs(bw.length-qw.length)>2) return false;
+      return _editDist(qw, bw)<=1;
+    });
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
 var readBooks = new Set(JSON.parse(localStorage.getItem('readBooks') || '[]'));
 var favoriteBooks = new Set(JSON.parse(localStorage.getItem('favoriteBooks') || '[]'));
 var activeGenre = 'all';
@@ -213,6 +253,7 @@ async function init() {
   try {
     var booksRes = await fetch(API + '/books.json?v=' + Date.now());
     allBooks = await booksRes.json();
+    _buildSearchIndex(allBooks);
     renderList(allBooks);
     var bookParam = new URLSearchParams(window.location.search).get('book');
     if (bookParam) openBook(parseInt(bookParam));
@@ -234,7 +275,7 @@ async function init() {
   document.getElementById('search-input').addEventListener('input', function(e) {
     var q = e.target.value.trim().toLowerCase();
     renderList(q ? allBooks.filter(function(b) {
-      return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q);
+      return _searchMatch(b, q);
     }) : filterByGenre(allBooks, activeGenre));
   });
 
