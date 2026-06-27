@@ -17,7 +17,7 @@ function _buildSearchIndex(books) {
   books.forEach(function(b){
     var t=b.title.toLowerCase(), a=b.author.toLowerCase();
     b._sq = t+' '+a+' '+_ruToLat(t)+' '+_ruToLat(a)+' '+_latToRu(t)+' '+_latToRu(a);
-    b._sqWords = b._sq.split(/\s+/).filter(function(w){ return w.length>0; });
+    b._sqWords = b._sq.split(/\s+/).filter(function(w){ return w.length>=4; });
   });
 }
 function _searchMatch(book, q) {
@@ -38,6 +38,15 @@ function _searchMatch(book, q) {
       return _editDist(qw, bw)<=1;
     });
   });
+}
+function _searchScore(book, q) {
+  var t = book.title.toLowerCase(), a = book.author.toLowerCase();
+  if(t === q || a === q) return 0;
+  if(a.startsWith(q) || _ruToLat(a).startsWith(q) || _latToRu(a).startsWith(q)) return 1;
+  if(t.startsWith(q)) return 2;
+  if(a.includes(q) || _ruToLat(a).includes(q) || _latToRu(a).includes(q)) return 3;
+  if(t.includes(q)) return 4;
+  return 5;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 var readBooks = new Set(JSON.parse(localStorage.getItem('readBooks') || '[]'));
@@ -274,9 +283,13 @@ async function init() {
 
   document.getElementById('search-input').addEventListener('input', function(e) {
     var q = e.target.value.trim().toLowerCase();
-    renderList(q ? allBooks.filter(function(b) {
-      return _searchMatch(b, q);
-    }) : filterByGenre(allBooks, activeGenre));
+    if(q) {
+      var matched = allBooks.filter(function(b){ return _searchMatch(b, q); });
+      matched.sort(function(a, b){ return _searchScore(a, q) - _searchScore(b, q); });
+      renderList(matched);
+    } else {
+      renderList(filterByGenre(allBooks, activeGenre));
+    }
   });
 
 }
