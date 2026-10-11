@@ -1,27 +1,39 @@
 import os
 import sqlite3
 import json
+import logging
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, LabeledPrice
-from telegram.ext import Application, CommandHandler, ContextTypes, PreCheckoutQueryHandler, MessageHandler, filters, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import Application, CommandHandler, ContextTypes, PreCheckoutQueryHandler, MessageHandler, filters
 
 load_dotenv()
+
+logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s", level=logging.INFO)
+# httpx пишет в INFO полный URL запроса вместе с токеном бота — глушим
+for _n in ("httpx", "httpcore", "telegram", "apscheduler"):
+    logging.getLogger(_n).setLevel(logging.WARNING)
+logger = logging.getLogger("books_bot")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = "https://books.zabeyda.lol"
 DB_FILE = "/root/books/books.db"
-STARS_PRICE = 385
 SUB_DAYS = 30
 
 WHITELIST = {'rzabeyda', 'dzabeida', 'azabeyda', 'zzabeyda', 'egosawa', 'nikita493', 'sepa17'}
 ADMIN_ID = 7308147004
 
 
+@contextmanager
 def get_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_FILE, timeout=10)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def init_db():
@@ -68,8 +80,8 @@ async def safe_send(context, chat_id: int, text: str, **kwargs):
         mark_unblocked(chat_id)
     except Forbidden:
         mark_blocked(chat_id)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("safe_send to %s failed: %s", chat_id, type(e).__name__)
 
 
 def log_payment(user_id: int, username: str, amount_stars: int, payload: str, ptype: str):
@@ -135,7 +147,8 @@ def get_user_id_by_username(username: str):
 def save_user(user_id: int, username: str, first_name: str):
     with get_db() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO users (user_id, username, first_name) VALUES (?, ?, ?)",
+            "INSERT INTO users (user_id, username, first_name) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, first_name=excluded.first_name",
             (user_id, (username or '').lower(), first_name or '')
         )
         conn.commit()
@@ -195,31 +208,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-async def subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await send_invoice(update.effective_chat.id, context)
-
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if query.data == "subscribe":
-        await send_invoice(query.message.chat_id, context)
-
-
-async def send_invoice(chat_id: int, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_invoice(
-        chat_id=chat_id,
-        title="Подписка на 30 дней",
-        description="Полный доступ ко всем книгам и идеям на 30 дней",
-        payload="subscription_30d",
-        currency="XTR",
-        prices=[LabeledPrice("Подписка 30 дней", STARS_PRICE)],
-        provider_token="",
-    )
-
-
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.pre_checkout_query.answer(ok=True)
+    payload = update.pre_checkout_query.invoice_payload or ""
+    known = {"subscription_30d", "sub_month", "sub_year", "sub_forever"}
+    if payload in known or payload.startswith("donate_"):
+        await update.pre_checkout_query.answer(ok=True)
+    else:
+        await update.pre_checkout_query.answer(ok=False, error_message="Неизвестный товар")
 
 
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -227,6 +222,16 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     payload = update.message.successful_payment.invoice_payload
     stars = update.message.successful_payment.total_amount
     username = (update.effective_user.username or '')
+
+    if payload.startswith('donate_'):
+        display = f'@{username}' if username else f'id{user_id}'
+        log_payment(user_id, username, stars, payload, 'donate')
+        try:
+            await context.bot.send_message(chat_id=ADMIN_ID, text=f"💛 Донат\n{display} — {stars} ⭐")
+        except Exception:
+            pass
+        await update.message.reply_text("💛 Спасибо за поддержку проекта!")
+        return
 
     days = {'sub_month': 30, 'sub_year': 365, 'sub_forever': 36500, 'subscription_30d': 30}.get(payload, 30)
 
@@ -310,17 +315,69 @@ async def payments_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rows = conn.execute(
             "SELECT username, amount_stars, type, paid_at FROM payments ORDER BY paid_at DESC LIMIT 20"
         ).fetchall()
-        total = conn.execute("SELECT SUM(amount_stars) FROM payments WHERE type='stars'").fetchone()[0] or 0
+        total = conn.execute("SELECT SUM(amount_stars) FROM payments WHERE type='tribute'").fetchone()[0] or 0
     if not rows:
         await update.message.reply_text("Платежей пока нет")
         return
-    lines = [f"💳 Последние платежи (всего ⭐ {total}):\n"]
+    lines = [f"💳 Последние платежи (Tribute всего ${total:g}):\n"]
     for r in rows:
         dt = r['paid_at'][:10]
         name = f"@{r['username']}" if r['username'] else 'аноним'
-        lines.append(f"{dt} | {name} | {r['amount_stars']} ⭐")
+        amt = f"${r['amount_stars']:g}" if r['type'] == 'tribute' else f"{r['amount_stars']} ⭐ ({r['type']})"
+        lines.append(f"{dt} | {name} | {amt}")
     await update.message.reply_text("\n".join(lines))
 
+
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    now = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        blocked = conn.execute("SELECT COUNT(*) FROM users WHERE blocked=1").fetchone()[0]
+        this_m = conn.execute("SELECT COUNT(*) FROM users WHERE first_seen >= date('now','start of month')").fetchone()[0]
+        last_m = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE first_seen >= date('now','start of month','-1 month') "
+            "AND first_seen < date('now','start of month')").fetchone()[0]
+        subs = conn.execute(
+            "SELECT COUNT(*) FROM subscriptions WHERE key GLOB '[0-9]*' AND expires > ?", (now,)).fetchone()[0]
+        paid = conn.execute("SELECT COUNT(*), COALESCE(SUM(amount_stars),0) FROM payments WHERE type='tribute'").fetchone()
+        donates = conn.execute("SELECT COALESCE(SUM(amount_stars),0) FROM payments WHERE type='donate'").fetchone()[0]
+    await update.message.reply_text(
+        f"📊 Статистика бота\n\n"
+        f"👥 Всего юзеров: {total}\n"
+        f"🆕 Новых в этом месяце: {this_m}\n"
+        f"🆕 Новых в прошлом месяце: {last_m}\n"
+        f"🚫 Заблокировали бота: {blocked}\n"
+        f"⭐ Активных подписок: {subs}\n"
+        f"💳 Оплат через Tribute: {paid[0]} на ${paid[1]:g} (учёт с 11.10.2026)\n"
+        f"💛 Донатов: {donates} ⭐"
+    )
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = "📚 /start — открыть библиотеку"
+    if update.effective_user.id == ADMIN_ID:
+        text += ("\n\nАдмин:\n/stats — статистика\n/vip @user 30 — выдать VIP\n"
+                 "/payments — платежи\n/blocked — заблокировавшие")
+    await update.message.reply_text(text)
+
+
+async def error_handler(update, context: ContextTypes.DEFAULT_TYPE):
+    from telegram.error import NetworkError, TimedOut
+    err = context.error
+    if isinstance(err, (NetworkError, TimedOut)):
+        logger.warning("Сетевая ошибка Telegram: %s", type(err).__name__)
+        return
+    logger.error("Необработанная ошибка", exc_info=err)
+    msg = f"{type(err).__name__}: {err}"
+    if BOT_TOKEN:
+        msg = msg.replace(BOT_TOKEN, "***")
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=("⚠️ Ошибка в боте\n" + msg)[:500])
+    except Exception:
+        pass
 
 
 async def any_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -340,11 +397,12 @@ def main():
     init_db()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("subscribe", subscribe_command))
     app.add_handler(CommandHandler("vip", vip_command))
     app.add_handler(CommandHandler("payments", payments_command))
     app.add_handler(CommandHandler("blocked", blocked_command))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CommandHandler("stats", stats_command))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_error_handler(error_handler)
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
     app.add_handler(MessageHandler(filters.ALL, any_message_handler))

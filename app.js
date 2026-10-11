@@ -659,7 +659,6 @@ function setScreen(name) {
   }
 }
 
-var selectedPlan = 'year';
 
 function setSubIcon(premium) {}
 
@@ -753,55 +752,11 @@ function closeSubInfo() {
   if (el) el.classList.remove('show');
 }
 
-function selectPlan(el, plan) {
-  selectedPlan = plan;
-  document.querySelectorAll('.sub-plan').forEach(function(b){ b.classList.remove('sub-plan--active'); });
-  el.classList.add('sub-plan--active');
-}
-
-async function paySelected() {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  var btn = document.getElementById('sub-pay-btn');
-  btn.disabled = true;
-  btn.textContent = 'Загрузка...';
-  try {
-    var resp = await fetch(API + '/invoice/' + selectedPlan);
-    var data = await resp.json();
-    if (!data.link) throw new Error(data.error || 'no link');
-    if (tg && tg.openInvoice) {
-      tg.openInvoice(data.link, function(status) {
-        if (status === 'paid') {
-          setSubIcon(true);
-          alert('Спасибо! Подписка активирована.');
-        }
-      });
-    } else if (tg && tg.openLink) {
-      tg.openLink(data.link);
-    } else {
-      window.open(data.link, '_blank');
-    }
-  } catch(e) {
-    alert('Ошибка: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Оплатить Stars';
-  }
-}
-
 function openSub() {
   setScreen('sub');
   var cached = localStorage.getItem('sub_expires');
   if (cached) applySubscribedUI(cached);
   checkSubscription();
-}
-
-function buyStars() {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg && tg.openTelegramLink) {
-    tg.openTelegramLink('https://t.me/stars');
-  } else {
-    window.open('https://t.me/stars', '_blank');
-  }
 }
 
 function writeAdmin() {
@@ -813,21 +768,6 @@ function writeAdmin() {
   }
 }
 function closeSub() { setScreen('list'); renderList(filterByGenre(allBooks, activeGenre)); }
-
-async function buyPlan(plan) {
-  var tg = window.Telegram && window.Telegram.WebApp;
-  if (!tg || !tg.openInvoice) { alert('Откройте в Telegram'); return; }
-  try {
-    var resp = await fetch(API + '/invoice/' + plan);
-    var data = await resp.json();
-    if (!data.link) throw new Error(data.error || 'no link');
-    tg.openInvoice(data.link, function(status) {
-      if (status === 'paid') alert('Спасибо! Подписка активирована.');
-    });
-  } catch(e) {
-    alert('Ошибка: ' + e.message);
-  }
-}
 
 function openWhyModal() {
   document.getElementById('why-modal').style.display = 'flex';
